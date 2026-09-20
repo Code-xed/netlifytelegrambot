@@ -35,7 +35,7 @@ export default async (req) => {
                     {
                       text: "🚀 Open Mini App",
                       web_app: {
-                        url: "https://tournament-api-yk90.onrender.com/https://tournament-api-yk90.onrender.com/"
+                        url: "https://tournament-api-yk90.onrender.com/"
                       }
                     }
                   ]
