@@ -1,45 +1,45 @@
 export default async (req, context) => {
-  // Telegram webhooks only send POST requests
   if (req.method !== "POST") {
     return new Response("Method Not Allowed", { status: 405 });
   }
 
   try {
     const update = await req.json();
+    console.log("Incoming update from Telegram:", JSON.stringify(update));
     
-    // Validate message payload
     if (!update.message || !update.message.text) {
+      console.log("Skipping: Update does not contain a text message.");
       return new Response("OK", { status: 200 });
     }
 
     const chatId = update.message.chat.id;
-    const chatType = update.message.chat.type; // "private", "group", "supergroup", etc.
+    const chatType = update.message.chat.type; 
     const text = update.message.text.trim();
     
-    // Environment variables
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    const miniAppUrl = process.env.TELEGRAM_MINI_APP_URL;
-    const allowedGroupId = process.env.TELEGRAM_ALLOWED_GROUP_ID;
+    const botToken = process.env.TELEGRAM_BOT_TOKEN ? process.env.TELEGRAM_BOT_TOKEN.trim() : "";
+    const miniAppUrl = process.env.TELEGRAM_MINI_APP_URL ? process.env.TELEGRAM_MINI_APP_URL.trim() : "";
+    const allowedGroupId = process.env.TELEGRAM_ALLOWED_GROUP_ID ? process.env.TELEGRAM_ALLOWED_GROUP_ID.trim() : "";
+
+    console.log(`Parsed Chat ID: ${chatId} | Chat Type: ${chatType} | Allowed Group ID: ${allowedGroupId} | Text: ${text}`);
 
     if (!botToken) {
-      console.error("TELEGRAM_BOT_TOKEN is missing.");
+      console.error("CRITICAL: TELEGRAM_BOT_TOKEN is missing.");
       return new Response("Configuration Error", { status: 500 });
     }
 
-    // Access Control Logic:
-    // Allow if it's a private DM OR if it matches your designated allowed group ID
     const isPrivate = chatType === "private";
-    const isAllowedGroup = allowedGroupId && chatId.toString() === allowedGroupId.toString();
+    const isAllowedGroup = allowedGroupId && chatId.toString() === allowedGroupId;
+
+    console.log(`Access Check -> isPrivate: ${isPrivate}, isAllowedGroup: ${isAllowedGroup}`);
 
     if (!isPrivate && !isAllowedGroup) {
-      // Ignore messages from any other unapproved group/channel
+      console.log("BLOCKED: Message came from an unauthorized chat/group.");
       return new Response("OK", { status: 200 });
     }
 
     let replyText = "";
     let replyMarkup = null;
 
-    // Handle tournament platform commands
     switch (text) {
       case "/start":
         replyText = "🎮 **Welcome to 0ms Arena!**\n\nCompete in high-stakes mobile tournaments, track your wallet ledger, and win real prizes.\n\nTap below to launch the platform:";
@@ -70,7 +70,6 @@ export default async (req, context) => {
         break;
 
       default:
-        // In DMs, you can guide them. In groups, keep it quiet unless it's a valid command.
         if (isPrivate) {
           replyText = "❓ Unknown command. Type /help to see available platform options.";
         } else {
@@ -89,16 +88,19 @@ export default async (req, context) => {
       telegramBody.reply_markup = replyMarkup;
     }
 
-    // Send response back to Telegram
-    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    console.log("Sending reply to Telegram API...");
+    const telegramResponse = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(telegramBody)
     });
 
+    const responseData = await telegramResponse.json();
+    console.log("Telegram API Response:", JSON.stringify(responseData));
+
     return new Response("OK", { status: 200 });
   } catch (error) {
-    console.error("Error processing Telegram update:", error);
+    console.error("Function error encountered:", error);
     return new Response("Internal Server Error", { status: 500 });
   }
 };
