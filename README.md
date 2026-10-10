@@ -59,9 +59,10 @@ WEBHOOK_SECRET=a-long-random-secret
 MINI_APP_URL=https://your-mini-app.example
 BOT_USERNAME=omsArenaBot
 DATABASE_URL=postgresql://USER:PASSWORD@HOST/DB?sslmode=require
+ADMIN_DASHBOARD_TOKEN=replace-with-a-long-random-secret
 ```
 
-`BOT_USERNAME` is optional; when omitted, the bot obtains its username from Telegram's `getMe` method when it creates a referral link. Do not include `@` in the value (the app also tolerates it). `DATABASE_URL` must be the Neon connection string for the same database used by Flask. It is required for referral-code creation and for processing referral deep links. Other bot commands and ordinary `/start` onboarding do not query Neon.
+`BOT_USERNAME` is optional; when omitted, the bot obtains its username from Telegram's `getMe` method when it creates a referral link. Do not include `@` in the value (the app also tolerates it). `DATABASE_URL` must be the Neon connection string for the same database used by Flask. It is required for referral-code creation and for processing referral deep links. Other bot commands and ordinary `/start` onboarding do not query Neon. `ADMIN_DASHBOARD_TOKEN` is a separate long random secret used only to authorize the manual legacy referral sync action on `/admin.html`; it is never returned by the stats endpoint. Enter it in the dashboard's password field when running a sync. The dashboard displays aggregate Blobs/Neon counts, health checks for Netlify Blobs, Neon and Telegram, and recent sync results. The sync only inserts missing legacy referral codes and pending attributions; it does not overwrite any existing Neon attribution, skips referred Telegram accounts already registered in the Mini App, and does not finalize referrals or credit rewards.
 
 Use Node.js 22.12 or newer for the current `@netlify/blobs` dependency. `netlify.toml` pins `NODE_VERSION` to `22.12.0`.
 
@@ -71,8 +72,9 @@ Use Node.js 22.12 or newer for the current `@netlify/blobs` dependency. `netlify
 2. Ensure Netlify is connected to the correct repository and branch.
 3. Set the environment variables above in Netlify.
 4. Deploy. No frontend build command is required; the publish directory is `public` and functions live in `netlify/functions`.
-5. Configure the Telegram webhook to `https://YOUR-SITE.netlify.app/.netlify/functions/telegram` with the same `WEBHOOK_SECRET` as `secret_token`. The compatibility endpoint `/.netlify/functions/bot` also uses the same app; configure only one webhook URL at a time.
-6. Check `getWebhookInfo` in the Telegram Bot API if updates are not arriving.
+5. Set `DATABASE_URL` and `ADMIN_DASHBOARD_TOKEN` in Netlify's Functions environment scope before using Neon referral operations or the protected manual sync button. Redeploy after changing environment variables.
+6. Configure the Telegram webhook to `https://YOUR-SITE.netlify.app/.netlify/functions/telegram` with the same `WEBHOOK_SECRET` as `secret_token`. The compatibility endpoint `/.netlify/functions/bot` also uses the same app; configure only one webhook URL at a time.
+7. Check `getWebhookInfo` in the Telegram Bot API if updates are not arriving.
 
 ## Local checks
 

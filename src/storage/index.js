@@ -494,6 +494,149 @@ export const storage = {
       return result;
     },
 
+    async syncLegacyToNeon() {
+      const sql = getNeonClient();
+      await sql`SELECT 1 AS connected`;
+      await sql`SELECT referral_code FROM public.referral_codes LIMIT 0`;
+      await sql`SELECT referred_telegram_id FROM public.referral_attributions LIMIT 0`;
+      const result = {
+        codesInserted: 0,
+        codesAlreadyPresent: 0,
+        codeConflicts: 0,
+        attributionsInserted: 0,
+        attributionsAlreadyPresent: 0,
+        attributionsSkippedRegistered: 0,
+        attributionsSkippedNonPending: 0,
+        attributionsSkippedInvalid: 0,
+        attributionsSkippedFinalized: 0,
+        errors: 0,
+      };
+
+      const referralStore = store(stores.referrals);
+      const { blobs: codeBlobs } = await referralStore.list({ prefix: "code:" });
+      const codeRecords = new Map();
+
+      for (const blob of codeBlobs) {
+        try {
+          const record = await getJson(stores.referrals, blob.key);
+          const codeFromKey = blob.key.slice("code:".length).toLowerCase();
+          const code = String(record?.code ?? codeFromKey).toLowerCase();
+          const ownerId = Number(record?.userId);
+          if (!Number.isSafeInteger(ownerId) || ownerId <= 0 || !isValidReferralCode(code) || code !== codeFromKey) {
+            result.codeConflicts += 1;
+            continue;
+          }
+
+          codeRecords.set(code, { ...record, userId: ownerId, code });
+          const existing = await findNeonCodeRecords(sql, ownerId, code);
+          const existingOwner = existing.find(row => String(row.telegram_user_id) === String(ownerId));
+          const existingCode = existing.find(row => String(row.referral_code).toLowerCase() === code);
+          if (existingOwner?.referral_code === code && (!existingCode || String(existingCode.telegram_user_id) === String(ownerId))) {
+            result.codesAlreadyPresent += 1;
+            continue;
+          }
+          await ensureNeonCodeOwnership(sql, ownerId, code, record?.createdAt);
+          result.codesInserted += 1;
+        } catch {
+          result.codeConflicts += 1;
+        }
+      }
+
+      const { blobs: attributionBlobs } = await referralStore.list({ prefix: "attribution:" });
+      for (const blob of attributionBlobs) {
+        try {
+          const record = await getJson(stores.referrals, blob.key);
+          const referredId = Number(record?.referredUserId ?? blob.key.slice("attribution:".length));
+          const referrerId = Number(record?.referrerId);
+          const code = String(record?.code ?? "").toLowerCase();
+          const status = String(record?.status ?? "pending").toLowerCase();
+
+          if (!Number.isSafeInteger(referredId) || referredId <= 0 || !Number.isSafeInteger(referrerId) || referrerId <= 0 || referredId === referrerId || !isValidReferralCode(code)) {
+            result.attributionsSkippedInvalid += 1;
+            continue;
+          }
+          if (status !== "pending") {
+            result.attributionsSkippedNonPending += 1;
+            continue;
+          }
+
+          const registeredUsers = await sql`
+            SELECT id
+            FROM public."user"
+            WHERE telegram_id = ${String(referredId)}
+            LIMIT 1
+          `;
+          if (registeredUsers.length) {
+            result.attributionsSkippedRegistered += 1;
+            continue;
+          }
+
+          const codeRecord = codeRecords.get(code) ?? await getJson(stores.referrals, `code:${code}`);
+          const blobOwnerId = Number(codeRecord?.userId);
+          if (Number.isSafeInteger(blobOwnerId) && blobOwnerId > 0 && blobOwnerId !== referrerId) {
+            result.attributionsSkippedInvalid += 1;
+            continue;
+          }
+          await ensureNeonCodeOwnership(sql, referrerId, code, codeRecord?.createdAt);
+
+          const existing = await sql`
+            SELECT source_status, referred_user_id
+            FROM public.referral_attributions
+            WHERE referred_telegram_id = ${String(referredId)}
+            LIMIT 1
+          `;
+          if (existing.length) {
+            if (String(existing[0].source_status).toLowerCase() !== "pending" || existing[0].referred_user_id != null) {
+              result.attributionsSkippedFinalized += 1;
+            } else {
+              result.attributionsAlreadyPresent += 1;
+            }
+            continue;
+          }
+
+          const attributedAt = sqlTimestamp(record?.attributedAt) ?? sqlTimestamp(Date.now());
+          const inserted = await sql`
+            INSERT INTO public.referral_attributions (
+              referred_telegram_id,
+              referrer_telegram_id,
+              referral_code,
+              source_status,
+              attributed_at,
+              synced_at
+            ) VALUES (
+              ${String(referredId)},
+              ${String(referrerId)},
+              ${code},
+              'pending',
+              ${attributedAt}::timestamp,
+              CURRENT_TIMESTAMP
+            )
+            ON CONFLICT (referred_telegram_id) DO NOTHING
+            RETURNING id
+          `;
+          if (inserted.length) {
+            result.attributionsInserted += 1;
+          } else {
+            const current = await sql`
+              SELECT source_status, referred_user_id
+              FROM public.referral_attributions
+              WHERE referred_telegram_id = ${String(referredId)}
+              LIMIT 1
+            `;
+            if (current.length && (String(current[0].source_status).toLowerCase() !== "pending" || current[0].referred_user_id != null)) {
+              result.attributionsSkippedFinalized += 1;
+            } else {
+              result.attributionsAlreadyPresent += 1;
+            }
+          }
+        } catch {
+          result.errors += 1;
+        }
+      }
+
+      return result;
+    },
+
     async stats(userId) {
       const id = Number(userId);
       const { blobs } = await store(stores.referrals).list({ prefix: `by-referrer:${id}:` });

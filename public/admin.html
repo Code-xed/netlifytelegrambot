@@ -7,73 +7,214 @@
   <meta name="robots" content="noindex, nofollow, noarchive">
   <title>0ms Arena | Bot Operations</title>
   <style>
-    :root{color-scheme:dark;--bg:#070b12;--panel:#0d1522;--line:rgba(172,198,235,.15);--text:#f5f8ff;--muted:#9caec6;--blue:#4b9bff;--cyan:#69e2ff;--lime:#c4ff72;--red:#ff8b98;--amber:#ffd27d;--radius:18px;--content:1120px}
-    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}body:before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,rgba(7,11,18,.7),#070b12 70%),url('/cover.jpeg') center top/cover no-repeat}button{font:inherit}.wrap{width:min(var(--content),calc(100% - 32px));margin:auto}.topbar{border-bottom:1px solid var(--line);background:rgba(7,11,18,.82);backdrop-filter:blur(18px)}.nav{min-height:70px;display:flex;align-items:center;justify-content:space-between;gap:16px}.brand{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:-.05em}.mark{width:34px;height:34px;display:grid;place-items:center;border-radius:11px;color:#06101b;background:linear-gradient(135deg,var(--cyan),var(--blue));font-size:13px}.brand em{color:var(--cyan);font-style:normal}.nav-actions{display:flex;align-items:center;gap:10px}.button{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:0 13px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.035);color:var(--text);font-size:12px;font-weight:800;cursor:pointer}.button.primary{border-color:transparent;background:linear-gradient(115deg,var(--cyan),#82baff);color:#07111e}.button:disabled{opacity:.55;cursor:wait}.main{padding:36px 0 60px}.eyebrow,.label{font-size:10px;font-weight:900;letter-spacing:.15em;text-transform:uppercase;color:var(--cyan)}h1{margin:9px 0;font-size:clamp(28px,4vw,42px);letter-spacing:-.065em;line-height:1.05}.intro{margin:0;color:var(--muted);font-size:13px;line-height:1.7}.heading{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:24px}.health{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;color:var(--muted);font-size:11px;white-space:nowrap}.dot{width:7px;height:7px;border-radius:50%;background:#738198}.health[data-state="ready"] .dot{background:var(--lime);box-shadow:0 0 12px #c4ff72}.health[data-state="degraded"] .dot{background:var(--amber)}.health[data-state="unavailable"] .dot{background:var(--red)}.notice{display:none;margin:0 0 18px;padding:12px 14px;border:1px solid rgba(255,210,125,.24);border-radius:12px;background:rgba(255,210,125,.06);color:#ffdda0;font-size:12px;line-height:1.6}.notice.show{display:block}.grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}.card{min-width:0;padding:18px;border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(145deg,rgba(18,29,46,.88),rgba(9,14,24,.88))}.card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--muted);font-size:11px;font-weight:750}.icon{font-size:16px}.value{display:block;margin-top:22px;font-size:clamp(23px,3vw,32px);font-weight:900;letter-spacing:-.06em;overflow-wrap:anywhere}.value.unavailable{font-size:16px;letter-spacing:0;color:var(--amber)}.caption{margin-top:5px;color:#7f91aa;font-size:10px;line-height:1.5}.lower{display:grid;grid-template-columns:1.2fr .8fr;gap:14px;margin-top:14px}.panel{padding:21px;border:1px solid var(--line);border-radius:var(--radius);background:rgba(13,21,34,.82)}.panel h2{margin:0 0 6px;font-size:16px;letter-spacing:-.03em}.panel p{margin:0;color:var(--muted);font-size:12px;line-height:1.7}.status-list{display:grid;gap:0;margin-top:14px}.status-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:12px}.status-row:last-child{border-bottom:0}.status-row span:first-child{color:#bdc9da}.status-pill{padding:5px 8px;border-radius:8px;background:rgba(255,255,255,.05);color:var(--muted);font-size:10px;font-weight:800}.status-pill.good{background:rgba(196,255,114,.08);color:var(--lime)}.status-pill.warn{background:rgba(255,210,125,.08);color:var(--amber)}.footer{display:flex;justify-content:space-between;gap:16px;margin-top:20px;color:#71839b;font-size:10px}.small{color:var(--muted);font-size:11px}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-    @media(max-width:900px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}.lower{grid-template-columns:1fr 1fr}}@media(max-width:620px){.wrap{width:calc(100% - 24px)}.nav{min-height:62px}.main{padding-top:25px}.heading{align-items:flex-start;flex-direction:column}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.card{padding:14px}.value{margin-top:18px}.lower{grid-template-columns:1fr}.footer{flex-direction:column}.nav-actions .button{min-height:38px;padding:0 10px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+    :root{color-scheme:dark;--bg:#070b12;--panel:#0d1522;--line:rgba(172,198,235,.15);--text:#f5f8ff;--muted:#9caec6;--blue:#4b9bff;--cyan:#69e2ff;--lime:#c4ff72;--red:#ff8b98;--amber:#ffd27d;--radius:18px;--content:1180px}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}body:before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,rgba(7,11,18,.68),#070b12 72%),url('/cover.jpeg') center top/cover no-repeat}button,input{font:inherit}.wrap{width:min(var(--content),calc(100% - 32px));margin:auto}.topbar{border-bottom:1px solid var(--line);background:rgba(7,11,18,.84);backdrop-filter:blur(18px)}.nav{min-height:70px;display:flex;align-items:center;justify-content:space-between;gap:16px}.brand{display:flex;align-items:center;gap:10px;color:var(--text);text-decoration:none;font-weight:900;letter-spacing:-.05em}.mark{width:34px;height:34px;display:grid;place-items:center;border-radius:11px;color:#06101b;background:linear-gradient(135deg,var(--cyan),var(--blue));font-size:13px}.brand em{color:var(--cyan);font-style:normal}.nav-actions{display:flex;align-items:center;gap:10px}.button{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 13px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.035);color:var(--text);font-size:12px;font-weight:800;cursor:pointer}.button.primary{border-color:transparent;background:linear-gradient(115deg,var(--cyan),#82baff);color:#07111e}.button:disabled{opacity:.55;cursor:wait}.button.danger{border-color:rgba(255,139,152,.28);color:var(--red)}.main{padding:34px 0 60px}.eyebrow,.label{font-size:10px;font-weight:900;letter-spacing:.15em;text-transform:uppercase;color:var(--cyan)}h1{margin:9px 0;font-size:clamp(29px,4vw,43px);letter-spacing:-.065em;line-height:1.05}.intro{margin:0;color:var(--muted);font-size:13px;line-height:1.7;max-width:690px}.heading{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;margin-bottom:22px}.health{display:inline-flex;align-items:center;gap:8px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;color:var(--muted);font-size:11px;white-space:nowrap}.dot{width:7px;height:7px;border-radius:50%;background:#738198;flex:0 0 auto}.health[data-state="ready"] .dot,.status-pill.good .dot{background:var(--lime);box-shadow:0 0 12px #c4ff72}.health[data-state="degraded"] .dot{background:var(--amber)}.health[data-state="unavailable"] .dot,.status-pill.bad .dot{background:var(--red)}.notice{display:none;margin:0 0 18px;padding:12px 14px;border:1px solid rgba(255,210,125,.24);border-radius:12px;background:rgba(255,210,125,.06);color:#ffdda0;font-size:12px;line-height:1.6}.notice.show{display:block}.notice.error{border-color:rgba(255,139,152,.25);background:rgba(255,139,152,.06);color:#ffb8c0}.section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;margin:26px 0 12px}.section-head h2{margin:0;font-size:16px;letter-spacing:-.03em}.section-head p{margin:5px 0 0;color:var(--muted);font-size:11px;line-height:1.6}.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px}.card{min-width:0;padding:17px;border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(145deg,rgba(18,29,46,.9),rgba(9,14,24,.9))}.card-top{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--muted);font-size:11px;font-weight:750}.icon{font-size:16px}.value{display:block;margin-top:19px;font-size:clamp(24px,3vw,33px);font-weight:900;letter-spacing:-.06em;overflow-wrap:anywhere}.value.unavailable{font-size:14px;letter-spacing:0;color:var(--amber)}.caption{margin-top:5px;color:#7f91aa;font-size:10px;line-height:1.5}.lower{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}.panel{min-width:0;padding:21px;border:1px solid var(--line);border-radius:var(--radius);background:rgba(13,21,34,.86)}.panel h2{margin:0 0 6px;font-size:16px;letter-spacing:-.03em}.panel p{margin:0;color:var(--muted);font-size:12px;line-height:1.7}.status-list{display:grid;gap:0;margin-top:12px}.status-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:12px}.status-row:last-child{border-bottom:0}.status-row .name{color:#bdc9da}.status-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 8px;border-radius:8px;background:rgba(255,255,255,.05);color:var(--muted);font-size:10px;font-weight:800;white-space:nowrap}.status-pill.good{background:rgba(196,255,114,.08);color:var(--lime)}.status-pill.warn{background:rgba(255,210,125,.08);color:var(--amber)}.status-pill.bad{background:rgba(255,139,152,.08);color:var(--red)}.sync-form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;margin-top:16px}.input{width:100%;min-width:0;min-height:42px;padding:0 12px;border:1px solid var(--line);border-radius:11px;background:rgba(2,7,14,.7);color:var(--text);font-size:12px}.input:focus{outline:2px solid rgba(105,226,255,.45);outline-offset:1px}.help{margin-top:9px!important;color:#7f91aa!important;font-size:10px!important}.sync-result{display:none;margin-top:13px;padding:12px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025);font-size:11px;line-height:1.65;color:var(--muted);white-space:pre-line}.sync-result.show{display:block}.history{display:grid;gap:8px;margin-top:14px}.history-item{padding:12px;border:1px solid rgba(255,255,255,.07);border-radius:12px;background:rgba(255,255,255,.02)}.history-top{display:flex;justify-content:space-between;align-items:center;gap:10px}.history-time{font-size:11px;font-weight:800}.history-meta{margin-top:6px;color:var(--muted);font-size:10px;line-height:1.6}.empty{padding:14px 0;color:#7f91aa;font-size:11px}.footer{display:flex;justify-content:space-between;gap:16px;margin-top:20px;color:#71839b;font-size:10px}.small{color:var(--muted);font-size:11px}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    @media(max-width:900px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}.lower{grid-template-columns:1fr 1fr}}@media(max-width:620px){.wrap{width:calc(100% - 24px)}.nav{min-height:62px}.main{padding-top:25px}.heading{align-items:flex-start;flex-direction:column}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.card{padding:14px}.value{margin-top:16px}.lower{grid-template-columns:1fr}.footer{flex-direction:column}.nav-actions .button{min-height:38px;padding:0 10px}.sync-form{grid-template-columns:1fr}.sync-form .button{width:100%}.section-head{align-items:flex-start;flex-direction:column}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
   </style>
 </head>
 <body>
-  <header class="topbar"><div class="wrap nav"><a class="brand" href="/" aria-label="0ms Arena home"><span class="mark">0MS</span><span>0ms <em>ARENA</em> <span class="small">/ OPS</span></span></a><div class="nav-actions"><span class="small" id="updatedAt">Not loaded yet</span><button class="button primary" id="refreshButton" type="button">↻ Refresh</button></div></div></header>
+  <header class="topbar"><div class="wrap nav"><a class="brand" href="/" aria-label="0ms Arena home"><span class="mark">0MS</span><span>0ms <em>ARENA</em> <span class="small">/ OPS</span></span></a><div class="nav-actions"><span class="small" id="updatedAt">Not loaded yet</span><button class="button" id="refreshButton" type="button">↻ Refresh stats</button></div></div></header>
   <main class="wrap main">
-    <div class="heading"><div><div class="eyebrow">Operations / Telegram bot</div><h1>Bot overview</h1><p class="intro">A compact view of the data currently available in Netlify Blobs. Unavailable metrics are shown explicitly, never as zero.</p></div><div class="health" id="overallHealth" data-state="loading"><span class="dot"></span><span id="healthText">Checking data</span></div></div>
+    <div class="heading"><div><div class="eyebrow">Operations / Telegram bot</div><h1>Bot operations</h1><p class="intro">Live operational counts, referral data, and service health. Aggregates only; no user-level referral records or database credentials are exposed.</p></div><div class="health" id="overallHealth" data-state="loading"><span class="dot"></span><span id="healthText">Checking services</span></div></div>
     <div class="notice" id="notice" role="status" aria-live="polite"></div>
-    <section class="grid" aria-label="Bot metrics">
-      <article class="card"><div class="card-top"><span>Users seen</span><span class="icon">◉</span></div><strong class="value" data-metric="usersSeen">—</strong><div class="caption">First-seen records in the referral store</div></article>
-      <article class="card"><div class="card-top"><span>Referral codes</span><span class="icon">↗</span></div><strong class="value" data-metric="referralCodes">—</strong><div class="caption">Unique code records stored</div></article>
-      <article class="card"><div class="card-top"><span>Attributions</span><span class="icon">⛓</span></div><strong class="value" data-metric="attributions">—</strong><div class="caption">Recorded Telegram referral attributions</div></article>
-      <article class="card"><div class="card-top"><span>Approved chats</span><span class="icon">▤</span></div><strong class="value" data-metric="approvedChats">—</strong><div class="caption">Chat records in the approved-chat store</div></article>
-      <article class="card"><div class="card-top"><span>Access requests</span><span class="icon">⌁</span></div><strong class="value" data-metric="accessRequests">—</strong><div class="caption">All saved requests, regardless of status</div></article>
+
+    <div class="section-head"><div><h2>Bot operations</h2><p>Netlify Blobs records used by the bot at runtime.</p></div></div>
+    <section class="grid" aria-label="Bot operational metrics">
+      <article class="card"><div class="card-top"><span>Users seen</span><span class="icon">◉</span></div><strong class="value" data-metric="usersSeen">—</strong><div class="caption">First-seen referral records</div></article>
+      <article class="card"><div class="card-top"><span>Referral codes</span><span class="icon">↗</span></div><strong class="value" data-metric="blobsReferralCodes">—</strong><div class="caption">Code records mirrored in Blobs</div></article>
+      <article class="card"><div class="card-top"><span>Attributions</span><span class="icon">⛓</span></div><strong class="value" data-metric="blobsAttributions">—</strong><div class="caption">Referral attribution mirrors</div></article>
+      <article class="card"><div class="card-top"><span>Approved chats</span><span class="icon">▤</span></div><strong class="value" data-metric="approvedChats">—</strong><div class="caption">Approved group records</div></article>
+      <article class="card"><div class="card-top"><span>Access requests</span><span class="icon">⌁</span></div><strong class="value" data-metric="accessRequests">—</strong><div class="caption">All saved access requests</div></article>
+      <article class="card"><div class="card-top"><span>Pending requests</span><span class="icon">◷</span></div><strong class="value" data-metric="pendingAccessRequests">—</strong><div class="caption">Awaiting admin review</div></article>
+      <article class="card"><div class="card-top"><span>Bot admins</span><span class="icon">♙</span></div><strong class="value" data-metric="admins">—</strong><div class="caption">Stored admin records</div></article>
     </section>
+
+    <div class="section-head"><div><h2>Neon referral data</h2><p>Live database counts, separate from the bot's Blobs mirrors.</p></div></div>
+    <section class="grid" aria-label="Neon database metrics">
+      <article class="card"><div class="card-top"><span>Platform users</span><span class="icon">◎</span></div><strong class="value" data-neon-metric="platformUsers">—</strong><div class="caption">Rows in the platform user table</div></article>
+      <article class="card"><div class="card-top"><span>Referral codes</span><span class="icon">↗</span></div><strong class="value" data-neon-metric="referralCodes">—</strong><div class="caption">Permanent code ownership</div></article>
+      <article class="card"><div class="card-top"><span>Attributions</span><span class="icon">⛓</span></div><strong class="value" data-neon-metric="attributions">—</strong><div class="caption">All Neon attribution records</div></article>
+      <article class="card"><div class="card-top"><span>Pending</span><span class="icon">◷</span></div><strong class="value" data-neon-metric="pendingAttributions">—</strong><div class="caption">Awaiting platform finalization</div></article>
+      <article class="card"><div class="card-top"><span>Finalized</span><span class="icon">✓</span></div><strong class="value" data-neon-metric="finalizedAttributions">—</strong><div class="caption">Finalized or linked attributions</div></article>
+      <article class="card"><div class="card-top"><span>Linked accounts</span><span class="icon">⇄</span></div><strong class="value" data-neon-metric="linkedAttributions">—</strong><div class="caption">Attributions linked to platform users</div></article>
+      <article class="card"><div class="card-top"><span>Reward claims</span><span class="icon">✦</span></div><strong class="value" data-neon-metric="rewardClaims">—</strong><div class="caption">Claim records in Neon</div></article>
+    </section>
+
     <section class="lower">
-      <article class="panel"><h2>Service availability</h2><p>Each metric is checked independently. A storage issue won't turn other unavailable values into misleading zeros.</p><div class="status-list" id="serviceList"><div class="status-row"><span>Netlify Blobs</span><span class="status-pill">Checking</span></div></div></article>
-      <article class="panel"><h2>Next operations</h2><p>Referral synchronization and its detailed results will appear here after the sync endpoint is implemented. This page is currently read-only.</p><div class="status-list"><div class="status-row"><span>Manual sync</span><span class="status-pill">Not connected</span></div><div class="status-row"><span>Neon database</span><span class="status-pill">Not connected</span></div><div class="status-row"><span>Sync history</span><span class="status-pill">Not available</span></div></div></article>
+      <article class="panel"><h2>Service health</h2><p>Checks are performed when this page refreshes. A configured URI alone does not count as a successful Neon connection.</p><div class="status-list" id="serviceList"><div class="status-row"><span class="name">Neon PostgreSQL</span><span class="status-pill">Checking</span></div></div></article>
+      <article class="panel"><h2>Manual referral sync</h2><p>Copies legacy Blobs referral codes and pending attributions into Neon. It never overwrites an existing Neon attribution, and it skips already-registered referred users.</p><div class="sync-form"><label class="sr-only" for="adminToken">Admin dashboard token</label><input class="input" id="adminToken" type="password" autocomplete="off" spellcheck="false" placeholder="Admin sync token"><button class="button primary" id="syncButton" type="button">⟳ Sync legacy data</button></div><p class="help">Requires the <code>ADMIN_DASHBOARD_TOKEN</code> Netlify environment variable. The token is held only in this page's memory and is not saved.</p><div class="sync-result" id="syncResult" role="status" aria-live="polite"></div></article>
     </section>
-    <footer class="footer"><span>0ms Arena · Bot operations</span><span>Read-only overview · No referral records exposed</span></footer>
+
+    <section class="panel" style="margin-top:14px"><div class="section-head" style="margin:0"><div><h2>Recent sync activity</h2><p>Most recent manual sync attempts recorded in Netlify Blobs.</p></div><span class="status-pill" id="historyCount">No history</span></div><div class="history" id="syncHistory"><div class="empty">Sync history will appear here after the first attempt.</div></div></section>
+    <footer class="footer"><span>0ms Arena · Bot operations</span><span>Aggregate diagnostics · Credentials and user-level records are never returned</span></footer>
   </main>
   <script>
-    const button = document.getElementById('refreshButton');
+    const refreshButton = document.getElementById('refreshButton');
+    const syncButton = document.getElementById('syncButton');
     const notice = document.getElementById('notice');
     const health = document.getElementById('overallHealth');
     const healthText = document.getElementById('healthText');
     const updatedAt = document.getElementById('updatedAt');
     const numberFormat = new Intl.NumberFormat();
-    const metricNames = {usersSeen:'Users seen',referralCodes:'Referral codes',attributions:'Attributions',approvedChats:'Approved chats',accessRequests:'Access requests'};
+    const blobMetricNames = {
+      usersSeen:'Users seen', blobsReferralCodes:'Blobs referral codes', blobsAttributions:'Blobs attributions',
+      approvedChats:'Approved chats', accessRequests:'Access requests', pendingAccessRequests:'Pending access requests', admins:'Bot admins'
+    };
+    const neonMetricNames = {
+      platformUsers:'Platform users', referralCodes:'Neon referral codes', attributions:'Neon attributions',
+      pendingAttributions:'Pending attributions', finalizedAttributions:'Finalized attributions',
+      linkedAttributions:'Linked accounts', rewardClaims:'Reward claims'
+    };
 
-    function showNotice(message) { notice.textContent = message; notice.classList.add('show'); }
-    function setMetric(name, metric) {
-      const element = document.querySelector(`[data-metric="${name}"]`);
-      if (!element) return;
-      element.classList.toggle('unavailable', !metric?.available || !Number.isFinite(metric.value));
-      element.textContent = metric?.available && Number.isFinite(metric.value) ? numberFormat.format(metric.value) : 'Unavailable';
+    function showNotice(message, isError = false) {
+      notice.textContent = message;
+      notice.classList.toggle('error', isError);
+      notice.classList.add('show');
     }
-
+    function clearNotice() { notice.classList.remove('show', 'error'); notice.textContent = ''; }
+    function setValue(selector, name, metric) {
+      const element = document.querySelector(`${selector}[data-${selector === '[data-neon-metric]' ? 'neon-metric' : 'metric'}="${name}"]`);
+      if (!element) return;
+      const available = metric?.available && Number.isFinite(Number(metric.value));
+      element.classList.toggle('unavailable', !available);
+      element.textContent = available ? numberFormat.format(Number(metric.value)) : 'Unavailable';
+    }
+    function pill(text, state = 'neutral') {
+      const span = document.createElement('span');
+      span.className = `status-pill ${state}`;
+      const dot = document.createElement('span');
+      dot.className = 'dot';
+      span.append(dot, document.createTextNode(text));
+      return span;
+    }
+    function statusLabel(status) {
+      return ({connected:['Connected','good'],not_configured:['Not configured','warn'],disconnected:['Disconnected','bad'],degraded:['Partial data','warn'],available:['Available','good'],unavailable:['Unavailable','bad'],completed:['Completed','good'],completed_with_warnings:['Completed with warnings','warn'],failed:['Failed','bad']})[status] || [status || 'Unknown',''];
+    }
+    function addStatusRow(container, label, status, detail = '') {
+      const row = document.createElement('div');
+      row.className = 'status-row';
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = label;
+      row.append(name, pill(statusLabel(status)[0], statusLabel(status)[1]));
+      if (detail) row.title = detail;
+      container.append(row);
+    }
+    function renderServices(payload) {
+      const list = document.getElementById('serviceList');
+      list.replaceChildren();
+      const availableMetrics = Object.values(payload.metrics || {}).filter(item => item?.available).length;
+      const totalMetrics = Object.keys(blobMetricNames).length;
+      addStatusRow(list, 'Netlify Blobs', availableMetrics === totalMetrics ? 'connected' : availableMetrics ? 'degraded' : 'disconnected', `${availableMetrics}/${totalMetrics} metrics available`);
+      addStatusRow(list, 'Neon PostgreSQL', payload.neon?.status || 'disconnected');
+      addStatusRow(list, 'Telegram Bot API', payload.telegram?.status || 'disconnected', payload.telegram?.botUsername ? `Bot: @${payload.telegram.botUsername}` : '');
+      addStatusRow(list, 'Sync authorization', payload.syncConfigured ? 'connected' : 'not_configured');
+      addStatusRow(list, 'Sync history', payload.syncHistoryAvailable ? 'available' : 'unavailable');
+    }
+    function renderHistory(history) {
+      const container = document.getElementById('syncHistory');
+      const count = document.getElementById('historyCount');
+      container.replaceChildren();
+      const items = Array.isArray(history) ? history : [];
+      count.textContent = `${items.length} record${items.length === 1 ? '' : 's'}`;
+      if (!items.length) {
+        const empty = document.createElement('div');
+        empty.className = 'empty';
+        empty.textContent = 'No sync attempts recorded yet.';
+        container.append(empty);
+        return;
+      }
+      for (const item of items) {
+        const card = document.createElement('article');
+        card.className = 'history-item';
+        const top = document.createElement('div');
+        top.className = 'history-top';
+        const time = document.createElement('span');
+        time.className = 'history-time';
+        const date = item.completedAt || item.startedAt;
+        time.textContent = date && Number.isFinite(Date.parse(date)) ? new Date(date).toLocaleString() : 'Unknown time';
+        const [label, state] = statusLabel(item.status);
+        top.append(time, pill(label, state));
+        const meta = document.createElement('div');
+        meta.className = 'history-meta';
+        if (item.status === 'failed') {
+          meta.textContent = item.message || 'Sync failed. Check function logs.';
+        } else {
+          meta.textContent = `Codes added: ${numberFormat.format(item.codesInserted || 0)} · Code conflicts: ${numberFormat.format(item.codeConflicts || 0)} · Attributions added: ${numberFormat.format(item.attributionsInserted || 0)} · Existing: ${numberFormat.format(item.attributionsAlreadyPresent || 0)} · Registered users skipped: ${numberFormat.format(item.attributionsSkippedRegistered || 0)} · Finalized skipped: ${numberFormat.format(item.attributionsSkippedFinalized || 0)} · Errors: ${numberFormat.format(item.errors || 0)}`;
+        }
+        card.append(top, meta);
+        container.append(card);
+      }
+    }
     async function refresh() {
-      button.disabled = true;
-      button.textContent = '↻ Loading';
-      notice.classList.remove('show');
+      refreshButton.disabled = true;
+      refreshButton.textContent = '↻ Loading';
+      clearNotice();
       try {
         const response = await fetch('/.netlify/functions/admin-stats', {headers:{Accept:'application/json'},cache:'no-store'});
         const payload = await response.json().catch(() => null);
         if (!response.ok || !payload) throw new Error('The statistics endpoint did not return a valid response.');
-        Object.keys(metricNames).forEach(name => setMetric(name, payload.metrics?.[name]));
-        const state = payload.status || 'unavailable';
-        health.dataset.state = state;
-        healthText.textContent = state === 'ready' ? 'All metrics available' : state === 'degraded' ? 'Partially available' : 'Data unavailable';
-        const unavailable = Object.entries(metricNames).filter(([name]) => !payload.metrics?.[name]?.available).map(([,label]) => label);
-        if (unavailable.length) showNotice(`Some statistics could not be loaded: ${unavailable.join(', ')}. Check Netlify Blobs configuration and runtime logs.`);
+        Object.entries(blobMetricNames).forEach(([name]) => setValue('[data-metric]', name, payload.metrics?.[name]));
+        Object.entries(neonMetricNames).forEach(([name]) => setValue('[data-neon-metric]', name, payload.neon?.metrics?.[name]));
+        health.dataset.state = payload.status || 'unavailable';
+        healthText.textContent = payload.status === 'ready' ? 'All services healthy' : payload.status === 'unavailable' ? 'Services unavailable' : 'Degraded service health';
         updatedAt.textContent = payload.generatedAt ? `Updated ${new Date(payload.generatedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}` : 'Updated just now';
-        const availableCount = Object.values(payload.metrics || {}).filter(item => item?.available).length;
-        document.getElementById('serviceList').innerHTML = `<div class="status-row"><span>Netlify Blobs</span><span class="status-pill ${availableCount === 5 ? 'good' : availableCount ? 'warn' : ''}">${availableCount === 5 ? 'Available' : availableCount ? 'Partially available' : 'Unavailable'}</span></div><div class="status-row"><span>Metrics available</span><span class="status-pill">${availableCount} / 5</span></div><div class="status-row"><span>Last response</span><span class="status-pill">${payload.generatedAt ? new Date(payload.generatedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'}) : 'Unknown'}</span></div>`;
+        renderServices(payload);
+        renderHistory(payload.syncHistory);
+        if (payload.neon?.status === 'not_configured') showNotice('Neon is not configured. Add DATABASE_URL to Netlify Functions environment variables, then redeploy.', true);
+        else if (payload.neon?.status === 'disconnected') showNotice('Neon is configured but the connection check failed. Verify DATABASE_URL and the Netlify function logs.', true);
+        else if (payload.neon?.status === 'degraded') showNotice('Neon is reachable, but one or more expected tables or queries are unavailable. Check that the existing referral migration has been applied.', true);
+        else if (payload.status !== 'ready') showNotice('Some service checks or metrics are unavailable. Individual service statuses are shown below.', false);
       } catch (error) {
         health.dataset.state = 'unavailable';
-        healthText.textContent = 'Endpoint unavailable';
-        showNotice(`${error.message || 'Statistics are temporarily unavailable.'} Existing values were left unchanged. You can retry.`);
+        healthText.textContent = 'Stats endpoint unavailable';
+        showNotice(error.message || 'Statistics are temporarily unavailable. Retry in a moment.', true);
       } finally {
-        button.disabled = false;
-        button.textContent = '↻ Refresh';
+        refreshButton.disabled = false;
+        refreshButton.textContent = '↻ Refresh stats';
       }
     }
-    button.addEventListener('click', refresh);
+    async function runSync() {
+      const token = document.getElementById('adminToken').value.trim();
+      const resultBox = document.getElementById('syncResult');
+      if (!token) {
+        resultBox.textContent = 'Enter the ADMIN_DASHBOARD_TOKEN value configured in Netlify to authorize this operation.';
+        resultBox.classList.add('show');
+        return;
+      }
+      if (!window.confirm('Sync legacy referral codes and pending attributions from Netlify Blobs into Neon? Existing Neon attribution records will not be overwritten.')) return;
+      syncButton.disabled = true;
+      refreshButton.disabled = true;
+      syncButton.textContent = '⟳ Syncing…';
+      resultBox.textContent = 'Sync running. This can take a little while if there are many legacy records.';
+      resultBox.classList.add('show');
+      clearNotice();
+      try {
+        const response = await fetch('/.netlify/functions/admin-sync', {
+          method: 'POST',
+          headers: {Accept:'application/json', Authorization:`Bearer ${token}`},
+          cache: 'no-store',
+        });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || !payload?.ok) throw new Error(payload?.error || `Sync failed with HTTP ${response.status}.`);
+        const r = payload.result || {};
+        resultBox.textContent = `Sync ${r.status || 'completed'}.\nCodes added: ${numberFormat.format(r.codesInserted || 0)}\nCodes already present: ${numberFormat.format(r.codesAlreadyPresent || 0)}\nCode conflicts: ${numberFormat.format(r.codeConflicts || 0)}\nAttributions added: ${numberFormat.format(r.attributionsInserted || 0)}\nAttributions already present: ${numberFormat.format(r.attributionsAlreadyPresent || 0)}\nRegistered users skipped: ${numberFormat.format(r.attributionsSkippedRegistered || 0)}\nFinalized records protected: ${numberFormat.format(r.attributionsSkippedFinalized || 0)}\nOther skipped records: ${numberFormat.format((r.attributionsSkippedInvalid || 0) + (r.attributionsSkippedNonPending || 0))}\nErrors: ${numberFormat.format(r.errors || 0)}`;
+        resultBox.classList.add('show');
+        if (r.status !== 'completed') showNotice('Sync completed with warnings. Review the result and recent sync activity.', false);
+        await refresh();
+      } catch (error) {
+        resultBox.textContent = error.message || 'Sync failed. Check Neon health and Netlify function logs.';
+        resultBox.classList.add('show');
+        showNotice(error.message || 'Manual sync failed.', true);
+        await refresh();
+      } finally {
+        syncButton.disabled = false;
+        refreshButton.disabled = false;
+        syncButton.textContent = '⟳ Sync legacy data';
+      }
+    }
+    refreshButton.addEventListener('click', refresh);
+    syncButton.addEventListener('click', runSync);
     refresh();
   </script>
 </body>
