@@ -2,1168 +2,324 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-
-  <title>0ms Arena | Telegram Bot</title>
-  <meta
-    name="description"
-    content="0ms Arena is a powerful Telegram bot for communities, access management and tournament utilities."
-  >
-
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#070b12">
+  <title>0ms Arena | Enter the Arena</title>
+  <meta name="description" content="Your command center for 0ms Arena. Explore tournaments, launch the platform, manage communities, and invite your squad.">
+  <meta property="og:title" content="0ms Arena | Enter the Arena">
+  <meta property="og:description" content="Tournaments. Skill. Glory. Launch 0ms Arena on Telegram.">
+  <meta property="og:type" content="website">
+  <link rel="preload" as="image" href="/cover.jpeg">
   <style>
     :root {
-      --bg: #03060b;
-      --bg2: #07101c;
-      --card: rgba(10, 19, 32, 0.62);
-      --border: rgba(255,255,255,.10);
-      --text: #f4f7fb;
-      --muted: #8d9bad;
-      --blue: #168cff;
-      --blue2: #0066ff;
-      --cyan: #42c8ff;
-      --green: #37e58c;
-      --shadow: 0 25px 80px rgba(0,0,0,.45);
+      color-scheme: dark;
+      --bg: #070b12;
+      --panel: rgba(14, 21, 34, .78);
+      --panel-solid: #0d1522;
+      --line: rgba(172, 198, 235, .15);
+      --text: #f5f8ff;
+      --muted: #9caec6;
+      --blue: #4b9bff;
+      --cyan: #69e2ff;
+      --lime: #c4ff72;
+      --radius: 24px;
+      --shadow: 0 24px 80px rgba(0, 0, 0, .36);
+      --content: 1160px;
     }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    html {
-      scroll-behavior: smooth;
-    }
-
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 92px; }
     body {
-      font-family:
-        Inter,
-        ui-sans-serif,
-        system-ui,
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        sans-serif;
-
-        background:
-    linear-gradient(
-      rgba(3, 6, 11, 0.25),
-      rgba(3, 6, 11, 0.55)
-    ),
-    url("/cover.jpeg") center top / cover no-repeat fixed;
-
-      color: var(--text);
-      min-height: 100vh;
-      overflow-x: hidden;
+      margin: 0; min-height: 100vh; overflow-x: hidden;
+      background: var(--bg); color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
     }
-
-    a {
-      color: inherit;
-      text-decoration: none;
+    body::before {
+      content: ""; position: fixed; inset: 0; z-index: -3; pointer-events: none;
+      background: linear-gradient(180deg, rgba(7,11,18,.40), rgba(7,11,18,.88) 58%, #070b12), url("/cover.jpeg") center top / cover no-repeat;
     }
-
-    /* =========================
-       BACKGROUND
-       ========================= */
-
-    .scene {
-      position: fixed;
-      inset: 0;
-      overflow: hidden;
-      pointer-events: none;
-      z-index: -3;
+    body::after {
+      content: ""; position: fixed; inset: 0; z-index: -2; pointer-events: none; opacity: .22;
+      background-image: linear-gradient(rgba(117,166,231,.09) 1px, transparent 1px), linear-gradient(90deg, rgba(117,166,231,.09) 1px, transparent 1px);
+      background-size: 58px 58px; mask-image: linear-gradient(to bottom, #000, transparent 80%);
     }
-
-    .grid {
-      position: absolute;
-      width: 180%;
-      height: 100%;
-      left: -40%;
-      top: 38%;
-      transform:
-        perspective(500px)
-        rotateX(62deg);
-
-      background-image:
-        linear-gradient(
-          rgba(45,139,255,.10) 1px,
-          transparent 1px
-        ),
-        linear-gradient(
-          90deg,
-          rgba(45,139,255,.10) 1px,
-          transparent 1px
-        );
-
-      background-size: 70px 70px;
-
-      mask-image:
-        linear-gradient(
-          to bottom,
-          transparent,
-          black 25%,
-          transparent 90%
-        );
-
-      animation: gridMove 12s linear infinite;
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; }
+    .wrap { width: min(var(--content), calc(100% - 40px)); margin-inline: auto; }
+    .topbar {
+      position: sticky; top: 0; z-index: 30; border-bottom: 1px solid rgba(255,255,255,.08);
+      background: rgba(7,11,18,.76); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
     }
-
-    @keyframes gridMove {
-      from {
-        transform:
-          perspective(500px)
-          rotateX(62deg)
-          translateY(0);
-      }
-
-      to {
-        transform:
-          perspective(500px)
-          rotateX(62deg)
-          translateY(70px);
-      }
+    .nav { min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 22px; }
+    .brand { display: inline-flex; align-items: center; gap: 11px; font-weight: 900; letter-spacing: -.06em; font-size: 20px; white-space: nowrap; }
+    .brand-mark { width: 37px; height: 37px; display: grid; place-items: center; border-radius: 12px; color: #06101b; background: linear-gradient(135deg, var(--cyan), var(--blue)); box-shadow: 0 0 30px rgba(75,155,255,.28); font-size: 15px; font-weight: 1000; }
+    .brand em { color: var(--cyan); font-style: normal; }
+    .nav-links { display: flex; align-items: center; gap: clamp(16px, 3vw, 34px); color: #b3c2d7; font-size: 13px; font-weight: 650; }
+    .nav-links a:not(.button):hover { color: white; }
+    .button { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 0 19px; border: 1px solid transparent; border-radius: 14px; font-size: 13px; font-weight: 850; transition: transform .2s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease; cursor: pointer; }
+    .button:hover { transform: translateY(-2px); }
+    .button-primary { color: #07111e; background: linear-gradient(115deg, var(--cyan), #82baff 72%); box-shadow: 0 12px 32px rgba(75,155,255,.18); }
+    .button-primary:hover { box-shadow: 0 16px 42px rgba(75,155,255,.3); }
+    .button-ghost { border-color: var(--line); background: rgba(255,255,255,.035); color: var(--text); }
+    .button-ghost:hover { border-color: rgba(105,226,255,.45); background: rgba(105,226,255,.06); }
+    .menu-toggle { display: none; width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 13px; color: white; background: rgba(255,255,255,.04); }
+    .hero { min-height: 670px; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(280px, .85fr); align-items: center; gap: 50px; padding-block: 76px 88px; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 9px; padding: 8px 12px; border: 1px solid rgba(105,226,255,.22); border-radius: 999px; background: rgba(105,226,255,.06); color: #bdefff; font-size: 11px; font-weight: 850; letter-spacing: .12em; text-transform: uppercase; }
+    .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 0 5px rgba(196,255,114,.09), 0 0 16px var(--lime); }
+    h1 { max-width: 760px; margin: 24px 0 20px; font-size: clamp(48px, 7.4vw, 88px); line-height: .99; letter-spacing: -.075em; font-weight: 950; }
+    h1 span { display: block; color: transparent; background: linear-gradient(100deg, #f7fbff 5%, #a6d8ff 47%, var(--cyan)); background-clip: text; -webkit-background-clip: text; }
+    .hero-copy { max-width: 570px; color: #b2c0d3; font-size: clamp(15px, 1.5vw, 18px); line-height: 1.8; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 29px; }
+    .trust-row { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 31px; color: #8194ad; font-size: 11px; font-weight: 700; }
+    .trust-row span { display: inline-flex; align-items: center; gap: 7px; }
+    .trust-row b { color: var(--lime); font-size: 14px; }
+    .hero-panel { position: relative; padding: 1px; border-radius: 30px; background: linear-gradient(145deg, rgba(105,226,255,.5), rgba(75,155,255,.08) 38%, rgba(255,255,255,.08)); box-shadow: var(--shadow); transform: rotate(1.2deg); }
+    .panel-inner { min-height: 420px; overflow: hidden; position: relative; padding: 25px; border-radius: 29px; background: linear-gradient(150deg, rgba(16,29,48,.97), rgba(7,12,22,.98)); }
+    .panel-inner::before { content: ""; position: absolute; width: 260px; height: 260px; right: -100px; top: -100px; border-radius: 50%; background: rgba(58,157,255,.16); filter: blur(8px); }
+    .panel-top { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 15px; padding-bottom: 21px; border-bottom: 1px solid var(--line); }
+    .panel-kicker { color: #8da2bd; font-size: 10px; font-weight: 800; letter-spacing: .16em; }
+    .panel-status { display: inline-flex; align-items: center; gap: 7px; padding: 7px 9px; border-radius: 9px; background: rgba(196,255,114,.08); color: var(--lime); font-size: 10px; font-weight: 800; }
+    .panel-title { position: relative; margin: 26px 0 8px; font-size: 25px; letter-spacing: -.05em; font-weight: 900; }
+    .panel-subtitle { position: relative; margin: 0; color: #91a4bd; font-size: 12px; line-height: 1.7; }
+    .stat-grid { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 26px; }
+    .stat { padding: 16px; border: 1px solid rgba(255,255,255,.09); border-radius: 16px; background: rgba(255,255,255,.035); }
+    .stat-icon { font-size: 18px; }
+    .stat strong { display: block; margin-top: 16px; font-size: 16px; letter-spacing: -.03em; }
+    .stat small { display: block; margin-top: 4px; color: #8295ad; font-size: 10px; }
+    .panel-bottom { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 18px; padding: 13px 14px; border-radius: 13px; background: rgba(75,155,255,.09); color: #b8d9ff; font-size: 11px; font-weight: 750; }
+    .panel-bottom span:last-child { color: var(--cyan); }
+    .section { padding-block: 75px; }
+    .section-head { max-width: 690px; margin-bottom: 31px; }
+    .section-label { color: var(--cyan); font-size: 11px; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
+    h2 { margin: 12px 0 12px; font-size: clamp(31px, 4.3vw, 48px); line-height: 1.08; letter-spacing: -.065em; font-weight: 920; }
+    .section-head p { margin: 0; color: var(--muted); line-height: 1.8; font-size: 14px; }
+    .feature-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+    .feature-card { min-height: 222px; padding: 25px; border: 1px solid var(--line); border-radius: var(--radius); background: linear-gradient(145deg, rgba(18,29,46,.78), rgba(9,14,24,.75)); transition: transform .22s ease, border-color .22s ease, background .22s ease; }
+    .feature-card:hover { transform: translateY(-4px); border-color: rgba(105,226,255,.35); background: linear-gradient(145deg, rgba(20,38,61,.9), rgba(9,14,24,.86)); }
+    .feature-icon { width: 45px; height: 45px; display: grid; place-items: center; border: 1px solid rgba(105,226,255,.18); border-radius: 14px; background: rgba(105,226,255,.07); font-size: 21px; }
+    .feature-card h3 { margin: 21px 0 9px; font-size: 16px; letter-spacing: -.03em; }
+    .feature-card p { margin: 0; color: #9aabc1; font-size: 12px; line-height: 1.8; }
+    .commands-layout { display: grid; grid-template-columns: .75fr 1.25fr; gap: 35px; align-items: start; }
+    .command-list { overflow: hidden; border: 1px solid var(--line); border-radius: 21px; background: rgba(11,17,28,.78); }
+    .command-row { display: grid; grid-template-columns: 120px 1fr auto; align-items: center; gap: 14px; padding: 17px 19px; border-bottom: 1px solid rgba(255,255,255,.065); }
+    .command-row:last-child { border-bottom: 0; }
+    .command-row code { color: #a8e9ff; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; font-weight: 800; }
+    .command-row span { color: #a7b5c8; font-size: 12px; }
+    .copy { padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; color: #9aabc1; background: transparent; font-size: 10px; cursor: pointer; }
+    .copy:hover { color: white; border-color: rgba(105,226,255,.35); }
+    .access-panel { padding: 27px; border: 1px solid var(--line); border-radius: 24px; background: var(--panel); }
+    .access-panel h3 { margin: 0 0 9px; font-size: 20px; letter-spacing: -.04em; }
+    .access-panel > p { margin: 0 0 21px; color: var(--muted); font-size: 13px; line-height: 1.8; }
+    .access-step { display: flex; align-items: flex-start; gap: 12px; margin-top: 16px; }
+    .step-number { flex: 0 0 27px; width: 27px; height: 27px; display: grid; place-items: center; border-radius: 9px; color: var(--cyan); background: rgba(105,226,255,.09); font-size: 11px; font-weight: 900; }
+    .access-step strong { display: block; margin-bottom: 4px; font-size: 12px; }
+    .access-step small { color: #8fa1b8; font-size: 11px; line-height: 1.6; }
+    .about-band { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 30px; padding: clamp(25px, 5vw, 48px); border: 1px solid rgba(105,226,255,.2); border-radius: 28px; background: radial-gradient(circle at 100% 0%, rgba(75,155,255,.17), transparent 40%), linear-gradient(120deg, rgba(15,28,46,.95), rgba(8,13,23,.92)); box-shadow: var(--shadow); }
+    .about-band h2 { max-width: 680px; margin-top: 0; font-size: clamp(29px, 4vw, 43px); }
+    .about-band p { max-width: 660px; margin: 0; color: #9eafc4; font-size: 13px; line-height: 1.8; }
+    .about-actions { display: flex; flex-direction: column; gap: 10px; min-width: 180px; }
+    .footer { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-block: 30px; margin-top: 65px; border-top: 1px solid rgba(255,255,255,.08); color: #8293a9; font-size: 11px; }
+    .footer strong { color: #e8f1ff; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 17px; }
+    .footer-links a:hover { color: white; }
+    .reveal { opacity: 0; transform: translateY(16px); transition: opacity .65s ease, transform .65s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr .78fr; gap: 25px; min-height: 600px; }
+      .panel-inner { padding: 20px; }
+      .feature-grid { grid-template-columns: repeat(2, 1fr); }
+      .commands-layout { grid-template-columns: 1fr; }
+      .access-panel { max-width: none; }
     }
-
-    .orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(1px);
-      opacity: .65;
+    @media (max-width: 680px) {
+      .wrap { width: min(var(--content), calc(100% - 30px)); }
+      .nav { min-height: 67px; }
+      .menu-toggle { display: inline-grid; place-items: center; }
+      .nav-links { display: none; position: absolute; top: 67px; left: 0; right: 0; padding: 16px 20px 20px; border-bottom: 1px solid var(--line); background: rgba(7,11,18,.97); flex-direction: column; align-items: stretch; gap: 0; }
+      .nav-links.open { display: flex; }
+      .nav-links a { padding: 13px 5px; }
+      .nav-links .button { margin-top: 8px; }
+      .hero { display: flex; flex-direction: column; align-items: stretch; gap: 34px; padding-block: 58px 42px; }
+      h1 { font-size: clamp(47px, 14vw, 72px); }
+      .hero-copy { font-size: 14px; }
+      .hero-actions { display: grid; grid-template-columns: 1fr; }
+      .hero-actions .button { width: 100%; }
+      .trust-row { gap: 11px 15px; }
+      .hero-panel { transform: none; }
+      .panel-inner { min-height: auto; }
+      .section { padding-block: 52px; }
+      .feature-grid { grid-template-columns: 1fr; }
+      .feature-card { min-height: 0; }
+      .command-row { grid-template-columns: 100px 1fr; gap: 10px; padding: 15px; }
+      .command-row .copy { grid-column: 2; justify-self: start; }
+      .about-band { grid-template-columns: 1fr; }
+      .about-actions { flex-direction: row; flex-wrap: wrap; }
+      .about-actions .button { flex: 1; }
+      .footer { align-items: flex-start; flex-direction: column; }
     }
-
-    .orb.one {
-      width: 550px;
-      height: 550px;
-      background:
-        radial-gradient(
-          circle,
-          rgba(0,132,255,.18),
-          transparent 68%
-        );
-      top: -220px;
-      left: 50%;
-      transform: translateX(-50%);
-    }
-
-    .orb.two {
-      width: 450px;
-      height: 450px;
-      background:
-        radial-gradient(
-          circle,
-          rgba(0,220,255,.08),
-          transparent 70%
-        );
-      right: -180px;
-      top: 45%;
-    }
-
-    .orb.three {
-      width: 400px;
-      height: 400px;
-      background:
-        radial-gradient(
-          circle,
-          rgba(80,70,255,.08),
-          transparent 70%
-        );
-      left: -180px;
-      top: 65%;
-    }
-
-    .stars {
-      position: absolute;
-      inset: 0;
-      opacity: .55;
-      background-image:
-        radial-gradient(circle, white 1px, transparent 1px),
-        radial-gradient(circle, #58b8ff 1px, transparent 1px);
-
-      background-size:
-        130px 130px,
-        210px 210px;
-
-      background-position:
-        20px 30px,
-        80px 100px;
-    }
-
-    /* =========================
-       NAVBAR
-       ========================= */
-
-    nav {
-      position: fixed;
-      z-index: 20;
-      top: 0;
-      left: 0;
-      right: 0;
-
-      height: 76px;
-
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-
-      padding: 0 6vw;
-
-      border-bottom: 1px solid rgba(255,255,255,.07);
-
-      background:
-        rgba(3,6,11,.58);
-
-      backdrop-filter: blur(18px);
-      -webkit-backdrop-filter: blur(18px);
-    }
-
-    .logo {
-      font-size: 22px;
-      font-weight: 800;
-      letter-spacing: -.7px;
-    }
-
-    .logo span {
-      color: var(--blue);
-    }
-
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 34px;
-    }
-
-    .nav-links a {
-      color: #aeb9c8;
-      font-size: 14px;
-      transition: .2s;
-    }
-
-    .nav-links a:hover {
-      color: white;
-    }
-
-    .nav-button {
-      padding: 11px 20px;
-      border: 1px solid rgba(0,140,255,.7);
-      border-radius: 30px;
-
-      background:
-        rgba(0,105,255,.08);
-
-      color: white !important;
-
-      box-shadow:
-        0 0 25px rgba(0,120,255,.12);
-    }
-
-    /* =========================
-       HERO
-       ========================= */
-
-    .hero {
-      min-height: 100vh;
-      position: relative;
-
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      padding:
-        130px 20px
-        100px;
-
-      text-align: center;
-    }
-
-    .hero-content {
-      max-width: 850px;
-      transform:
-        translateY(var(--parallax, 0px));
-    }
-
-    .status {
-      display: inline-flex;
-      align-items: center;
-      gap: 9px;
-
-      padding: 9px 15px;
-
-      border-radius: 30px;
-
-      border: 1px solid rgba(255,255,255,.10);
-
-      background:
-        rgba(13,23,36,.65);
-
-      color: #c4cedb;
-      font-size: 13px;
-
-      box-shadow:
-        0 10px 40px rgba(0,0,0,.25);
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--green);
-
-      box-shadow:
-        0 0 14px rgba(55,229,140,.9);
-
-      animation: pulse 2s infinite;
-    }
-
-    @keyframes pulse {
-      0%,100% {
-        opacity: 1;
-        transform: scale(1);
-      }
-
-      50% {
-        opacity: .45;
-        transform: scale(.75);
-      }
-    }
-
-    h1 {
-      margin-top: 25px;
-
-      font-size:
-        clamp(64px, 11vw, 145px);
-
-      line-height: .85;
-      letter-spacing: -7px;
-
-      font-weight: 900;
-
-      background:
-        linear-gradient(
-          100deg,
-          #ffffff 15%,
-          #ffffff 38%,
-          #1491ff 65%,
-          #64d3ff
-        );
-
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-
-      filter:
-        drop-shadow(
-          0 0 35px rgba(0,130,255,.18)
-        );
-    }
-
-    .tagline {
-      margin-top: 26px;
-
-      font-size: 14px;
-      letter-spacing: 7px;
-      font-weight: 700;
-
-      color: #91a0b3;
-    }
-
-    .description {
-      max-width: 650px;
-
-      margin:
-        26px auto 0;
-
-      color: #aab6c5;
-      font-size: 17px;
-      line-height: 1.7;
-    }
-
-    .hero-buttons {
-      display: flex;
-      justify-content: center;
-      gap: 14px;
-
-      margin-top: 38px;
-    }
-
-    .button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-
-      min-width: 190px;
-      padding: 15px 24px;
-
-      border-radius: 12px;
-
-      font-weight: 700;
-      font-size: 14px;
-
-      transition:
-        transform .2s,
-        box-shadow .2s,
-        background .2s;
-    }
-
-    .button:hover {
-      transform: translateY(-3px);
-    }
-
-    .button-primary {
-      background:
-        linear-gradient(
-          135deg,
-          #1595ff,
-          #0068ff
-        );
-
-      box-shadow:
-        0 15px 45px rgba(0,110,255,.25);
-    }
-
-    .button-primary:hover {
-      box-shadow:
-        0 20px 60px rgba(0,130,255,.38);
-    }
-
-    .button-secondary {
-      border: 1px solid rgba(255,255,255,.20);
-      background: rgba(255,255,255,.035);
-    }
-
-    .button-secondary:hover {
-      background: rgba(255,255,255,.08);
-    }
-
-    /* =========================
-       FEATURE CARDS
-       ========================= */
-
-    .features {
-      max-width: 1100px;
-
-      margin:
-        -30px auto 0;
-
-      padding:
-        0 20px 100px;
-
-      display: grid;
-      grid-template-columns:
-        repeat(4, 1fr);
-
-      gap: 14px;
-    }
-
-    .feature {
-      position: relative;
-
-      padding: 28px 22px;
-
-      min-height: 180px;
-
-      border:
-        1px solid var(--border);
-
-      border-radius: 18px;
-
-      background:
-        linear-gradient(
-          145deg,
-          rgba(18,31,49,.72),
-          rgba(5,11,20,.65)
-        );
-
-      backdrop-filter: blur(16px);
-
-      box-shadow:
-        var(--shadow);
-
-      overflow: hidden;
-
-      transition:
-        transform .25s,
-        border-color .25s;
-    }
-
-    .feature::before {
-      content: "";
-
-      position: absolute;
-
-      width: 120px;
-      height: 120px;
-
-      top: -70px;
-      right: -50px;
-
-      background:
-        rgba(0,130,255,.12);
-
-      filter: blur(25px);
-      border-radius: 50%;
-    }
-
-    .feature:hover {
-      transform: translateY(-7px);
-
-      border-color:
-        rgba(35,143,255,.35);
-    }
-
-    .feature-icon {
-      width: 43px;
-      height: 43px;
-
-      display: grid;
-      place-items: center;
-
-      border-radius: 12px;
-
-      background:
-        rgba(0,128,255,.10);
-
-      border:
-        1px solid rgba(0,128,255,.18);
-
-      color: #2a9cff;
-
-      font-size: 20px;
-
-      margin-bottom: 22px;
-    }
-
-    .feature h3 {
-      font-size: 17px;
-      margin-bottom: 8px;
-    }
-
-    .feature p {
-      color: var(--muted);
-      line-height: 1.55;
-      font-size: 13px;
-    }
-
-    /* =========================
-       COMMANDS
-       ========================= */
-
-    .section {
-      max-width: 1000px;
-      margin: 0 auto;
-      padding: 110px 20px;
-    }
-
-    .section-title {
-      text-align: center;
-      margin-bottom: 45px;
-    }
-
-    .section-title span {
-      color: var(--blue);
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: 4px;
-      text-transform: uppercase;
-    }
-
-    .section-title h2 {
-      margin-top: 12px;
-      font-size: clamp(32px,5vw,55px);
-      letter-spacing: -2px;
-    }
-
-    .section-title p {
-      color: var(--muted);
-      margin-top: 14px;
-    }
-
-    .commands {
-      display: grid;
-      grid-template-columns:
-        repeat(2, 1fr);
-
-      gap: 12px;
-    }
-
-    .command {
-      padding: 20px;
-
-      border: 1px solid var(--border);
-      border-radius: 14px;
-
-      background:
-        rgba(10,18,30,.55);
-
-      transition: .2s;
-    }
-
-    .command:hover {
-      border-color:
-        rgba(0,130,255,.35);
-
-      transform: translateY(-3px);
-    }
-
-    .command code {
-      color: #38a4ff;
-      font-size: 15px;
-      font-weight: 800;
-    }
-
-    .command p {
-      color: #8d9bad;
-      font-size: 13px;
-      margin-top: 7px;
-    }
-
-    /* =========================
-       CTA
-       ========================= */
-
-    .cta {
-      margin: 30px 20px 100px;
-
-      padding: 75px 30px;
-
-      text-align: center;
-
-      border:
-        1px solid rgba(0,130,255,.18);
-
-      border-radius: 28px;
-
-      background:
-        radial-gradient(
-          circle at center,
-          rgba(0,120,255,.13),
-          transparent 65%
-        ),
-        rgba(7,14,24,.7);
-
-      overflow: hidden;
-    }
-
-    .cta h2 {
-      font-size:
-        clamp(32px,5vw,55px);
-
-      letter-spacing: -2px;
-    }
-
-    .cta p {
-      color: var(--muted);
-      margin:
-        15px auto 30px;
-    }
-
-    /* =========================
-       FOOTER
-       ========================= */
-
-    footer {
-      padding:
-        30px 6vw;
-
-      border-top:
-        1px solid rgba(255,255,255,.06);
-
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-
-      color: #697687;
-      font-size: 13px;
-    }
-
-    footer strong {
-      color: #aeb9c8;
-    }
-
-    /* =========================
-       SCROLL INDICATOR
-       ========================= */
-
-    .scroll {
-      position: absolute;
-      bottom: 28px;
-      left: 50%;
-      transform: translateX(-50%);
-
-      color: #687789;
-      font-size: 10px;
-      letter-spacing: 3px;
-
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 9px;
-    }
-
-    .scroll-line {
-      width: 1px;
-      height: 35px;
-
-      background:
-        linear-gradient(
-          transparent,
-          #5d738d
-        );
-    }
-
-    /* =========================
-       MOBILE
-       ========================= */
-
-    @media (max-width: 800px) {
-
-      nav {
-        padding: 0 20px;
-      }
-
-      .nav-links {
-        display: none;
-      }
-
-      .hero {
-        padding-top: 120px;
-      }
-
-      h1 {
-        letter-spacing: -4px;
-      }
-
-      .tagline {
-        letter-spacing: 3px;
-      }
-
-      .description {
-        font-size: 15px;
-      }
-
-      .hero-buttons {
-        flex-direction: column;
-        align-items: stretch;
-        max-width: 320px;
-        margin-left: auto;
-        margin-right: auto;
-      }
-
-      .features {
-        grid-template-columns:
-          repeat(2, 1fr);
-      }
-
-      .commands {
-        grid-template-columns: 1fr;
-      }
-
-      .scroll {
-        display: none;
-      }
-    }
-
-    @media (max-width: 480px) {
-
-      .logo {
-        font-size: 19px;
-      }
-
-      .nav-button {
-        padding: 9px 14px;
-      }
-
-      .features {
-        grid-template-columns: 1fr;
-      }
-
-      .feature {
-        min-height: auto;
-      }
-
-      .section {
-        padding:
-          80px 20px;
-      }
-
-      footer {
-        flex-direction: column;
-        gap: 10px;
-      }
-    }
-
-    /* =========================
-       REVEAL ANIMATION
-       ========================= */
-
-    .reveal {
-      opacity: 0;
-      transform: translateY(30px);
-
-      transition:
-        opacity .7s ease,
-        transform .7s ease;
-    }
-
-    .reveal.visible {
-      opacity: 1;
-      transform: translateY(0);
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+      .reveal { opacity: 1; transform: none; }
     }
   </style>
 </head>
-
 <body>
+  <header class="topbar">
+    <nav class="nav wrap" aria-label="Main navigation">
+      <a class="brand" href="#home" aria-label="0ms Arena home"><span class="brand-mark">0M</span><span>0MS <em>ARENA</em></span></a>
+      <button class="menu-toggle" id="menuToggle" type="button" aria-expanded="false" aria-controls="navLinks" aria-label="Toggle navigation">☰</button>
+      <div class="nav-links" id="navLinks">
+        <a href="#home">Home</a><a href="#features">Features</a><a href="#commands">Commands</a><a href="#about">About</a>
+        <a class="button button-primary" href="https://t.me/omsArenaBot" target="_blank" rel="noopener noreferrer">Open Telegram <span aria-hidden="true">↗</span></a>
+      </div>
+    </nav>
+  </header>
 
-  <!-- Background -->
-  <div class="scene">
-    <div class="stars"></div>
-    <div class="orb one"></div>
-    <div class="orb two"></div>
-    <div class="orb three"></div>
-    <div class="grid"></div>
-  </div>
-
-  <!-- Navigation -->
-  <nav>
-    <a href="#" class="logo">
-      0ms<span>Arena</span>
-    </a>
-
-    <div class="nav-links">
-      <a href="#home">Home</a>
-      <a href="#features">Features</a>
-      <a href="#commands">Commands</a>
-      <a href="#about">About</a>
-      <a
-        href="https://t.me/omsArenaBot"
-        target="_blank"
-        class="nav-button"
-      >
-        ✈ Open Bot
-      </a>
-    </div>
-
-    <a
-      href="https://t.me/omsArenaBot"
-      target="_blank"
-      class="nav-button"
-    >
-      Open Bot
-    </a>
-  </nav>
-
-
-  <!-- Hero -->
-  <main id="home">
-
-    <section class="hero">
-
-      <div class="hero-content" id="heroContent">
-
-        <div class="status">
-          <span class="status-dot"></span>
-          Bot is Online
+  <main id="home" class="wrap">
+    <section class="hero" aria-labelledby="heroTitle">
+      <div class="hero-copy-block">
+        <div class="eyebrow"><span class="pulse"></span> YOUR ARENA STARTS HERE</div>
+        <h1 id="heroTitle">PLAY SMART.<span>RISE TO GLORY.</span></h1>
+        <p class="hero-copy">Your launchpad for 0ms Arena. Jump into the tournament platform, keep your community organized, and bring your squad into the game without the noise.</p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="https://t.me/omsArenaBot" target="_blank" rel="noopener noreferrer">Launch on Telegram <span aria-hidden="true">↗</span></a>
+          <a class="button button-ghost" href="#features">Explore the platform <span aria-hidden="true">↓</span></a>
         </div>
-
-        <h1>
-          0msarena
-        </h1>
-
-        <div class="tagline">
-          SIMPLE TOOLS. REAL UTILITY.
-        </div>
-
-        <p class="description">
-          A powerful Telegram bot built for communities,
-          access management, administration and more.
-          Fast, modular and designed to stay out of your way.
-        </p>
-
-        <div class="hero-buttons">
-
-          <a
-            href="https://t.me/omsArenaBot"
-            target="_blank"
-            class="button button-primary"
-          >
-            ✈ Open on Telegram
-            <span>→</span>
-          </a>
-
-          <a
-            href="#commands"
-            class="button button-secondary"
-          >
-            ⌘ View Commands
-          </a>
-
-        </div>
-
+        <div class="trust-row" aria-label="Platform highlights"><span><b>✦</b> Tournament-first</span><span><b>✦</b> Community tools</span><span><b>✦</b> Built for Telegram</span></div>
       </div>
 
-      <div class="scroll">
-        <span>SCROLL DOWN</span>
-        <span class="scroll-line"></span>
+      <aside class="hero-panel" aria-label="0ms Arena feature preview">
+        <div class="panel-inner">
+          <div class="panel-top"><span class="panel-kicker">ARENA / COMMAND CENTER</span><span class="panel-status"><span class="pulse"></span> READY TO LAUNCH</span></div>
+          <h2 class="panel-title">Everything starts with one tap.</h2>
+          <p class="panel-subtitle">Open the platform, invite your people, and manage your Telegram community from a single bot.</p>
+          <div class="stat-grid">
+            <div class="stat"><span class="stat-icon">🏆</span><strong>Tournaments</strong><small>Find your next match</small></div>
+            <div class="stat"><span class="stat-icon">🤝</span><strong>Referrals</strong><small>Share your invite link</small></div>
+            <div class="stat"><span class="stat-icon">🛡️</span><strong>Access control</strong><small>Approve trusted chats</small></div>
+            <div class="stat"><span class="stat-icon">⚙️</span><strong>Admin tools</strong><small>Manage from Telegram</small></div>
+          </div>
+          <div class="panel-bottom"><span>0MS ARENA SYSTEM</span><span>READY&nbsp; ↗</span></div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="section" id="features" aria-labelledby="featuresTitle">
+      <div class="section-head reveal"><div class="section-label">Built for the whole squad</div><h2 id="featuresTitle">Less friction. More game.</h2><p>From launching the tournament app to keeping group access under control, the bot brings the essentials into one clean flow.</p></div>
+      <div class="feature-grid">
+        <article class="feature-card reveal"><div class="feature-icon">🏆</div><h3>Tournament launchpad</h3><p>Open the 0ms Arena Mini App directly from Telegram and get back to the platform without hunting for links.</p></article>
+        <article class="feature-card reveal"><div class="feature-icon">🤝</div><h3>Personal referral links</h3><p>Generate a unique invite link, share it with friends, and see how many Telegram referrals have been recorded.</p></article>
+        <article class="feature-card reveal"><div class="feature-icon">🛡️</div><h3>Controlled access</h3><p>Run in open or restricted mode. Group owners can submit requests, and admins can review them with inline controls.</p></article>
+        <article class="feature-card reveal"><div class="feature-icon">⚙️</div><h3>Admin control panel</h3><p>Review pending requests, manage approved chats, add or remove admins, and change access mode from Telegram.</p></article>
+        <article class="feature-card reveal"><div class="feature-icon">💾</div><h3>Persistent settings</h3><p>Bot settings, administrators, approved chats, requests, and referral attribution are stored across serverless invocations.</p></article>
+        <article class="feature-card reveal"><div class="feature-icon">📱</div><h3>Telegram-native UX</h3><p>Use inline keyboards, deep links, compact navigation, and familiar commands without installing another app.</p></article>
       </div>
-
     </section>
 
-
-    <!-- Features -->
-    <section
-      class="features"
-      id="features"
-    >
-
-      <article class="feature reveal">
-        <div class="feature-icon">ϟ</div>
-
-        <h3>Fast</h3>
-
-        <p>
-          Instant responses and a smooth
-          Telegram experience without unnecessary overhead.
-        </p>
-      </article>
-
-
-      <article class="feature reveal">
-        <div class="feature-icon">◇</div>
-
-        <h3>Manage</h3>
-
-        <p>
-          User access, approvals, administrators
-          and controls from a clean interface.
-        </p>
-      </article>
-
-
-      <article class="feature reveal">
-        <div class="feature-icon">⬡</div>
-
-        <h3>Extendable</h3>
-
-        <p>
-          A modular architecture that can grow
-          with new commands and features.
-        </p>
-      </article>
-
-
-      <article class="feature reveal">
-        <div class="feature-icon">♧</div>
-
-        <h3>For Communities</h3>
-
-        <p>
-          Built to help groups stay organized,
-          controlled and connected.
-        </p>
-      </article>
-
-    </section>
-
-
-    <!-- Commands -->
-    <section
-      class="section"
-      id="commands"
-    >
-
-      <div class="section-title reveal">
-
-        <span>Commands</span>
-
-        <h2>
-          Everything you need.
-        </h2>
-
-        <p>
-          Quick access to the core 0ms Arena features.
-        </p>
-
+    <section class="section" id="commands" aria-labelledby="commandsTitle">
+      <div class="commands-layout">
+        <div class="section-head reveal"><div class="section-label">Quick command reference</div><h2 id="commandsTitle">Your shortcuts.</h2><p>Type a command in the bot chat to get where you need to go. Admin controls remain restricted to authorized administrators.</p></div>
+        <div class="command-list reveal" aria-label="Bot commands">
+          <div class="command-row"><code>/start</code><span>Open the main menu or follow a referral link</span><button class="copy" type="button" data-copy="/start">Copy</button></div>
+          <div class="command-row"><code>/help</code><span>Read the quick guide</span><button class="copy" type="button" data-copy="/help">Copy</button></div>
+          <div class="command-row"><code>/referral</code><span>Open your invite link and stats</span><button class="copy" type="button" data-copy="/referral">Copy</button></div>
+          <div class="command-row"><code>/rules</code><span>Read tournament and fair-play rules</span><button class="copy" type="button" data-copy="/rules">Copy</button></div>
+          <div class="command-row"><code>/prizes</code><span>Wallet and payout information</span><button class="copy" type="button" data-copy="/prizes">Copy</button></div>
+          <div class="command-row"><code>/request</code><span>Request approval for a group</span><button class="copy" type="button" data-copy="/request">Copy</button></div>
+          <div class="command-row"><code>/admin</code><span>Open the admin control panel</span><button class="copy" type="button" data-copy="/admin">Copy</button></div>
+          <div class="command-row"><code>/addadmin</code><span>Owner-only: add an admin by user ID</span><button class="copy" type="button" data-copy="/addadmin ">Copy</button></div>
+          <div class="command-row"><code>/ping</code><span>Check that the bot is responding</span><button class="copy" type="button" data-copy="/ping">Copy</button></div>
+        </div>
       </div>
+    </section>
 
-
-      <div class="commands">
-
-        <div class="command reveal">
-          <code>/start</code>
-          <p>
-            Open the 0ms Arena main menu.
-          </p>
+    <section class="section" aria-labelledby="accessTitle">
+      <div class="commands-layout">
+        <div class="section-head reveal"><div class="section-label">Community management</div><h2 id="accessTitle">Open by choice. Restricted by design.</h2><p>Use the access mode that fits your community. The owner and approved administrators can manage access from the inline control panel.</p></div>
+        <div class="access-panel reveal">
+          <h3>Group approval flow</h3><p>When the bot is in restricted mode, a group can request access without an admin needing to manually copy chat IDs around.</p>
+          <div class="access-step"><span class="step-number">01</span><div><strong>Request from the group</strong><small>Run <code>/request</code> in the group to get a private access link.</small></div></div>
+          <div class="access-step"><span class="step-number">02</span><div><strong>Submit the request</strong><small>Open the bot privately and confirm the group request.</small></div></div>
+          <div class="access-step"><span class="step-number">03</span><div><strong>Review in the control panel</strong><small>Admins can approve or reject requests, and approved chats can be removed later.</small></div></div>
         </div>
-
-        <div class="command reveal">
-          <code>/help</code>
-          <p>
-            View help and navigation options.
-          </p>
-        </div>
-
-        <div class="command reveal">
-          <code>/request</code>
-          <p>
-            Request access for a group.
-          </p>
-        </div>
-
-        <div class="command reveal">
-          <code>/ping</code>
-          <p>
-            Check whether the bot is responding.
-          </p>
-        </div>
-
-        <div class="command reveal">
-          <code>/admin</code>
-          <p>
-            Open the administrator control panel.
-          </p>
-        </div>
-
-        <div class="command reveal">
-          <code>/addadmin</code>
-          <p>
-            Add an administrator using their Telegram ID.
-          </p>
-        </div>
-
       </div>
-
     </section>
 
-
-    <!-- CTA -->
-    <section
-      class="cta reveal"
-      id="about"
-    >
-
-      <h2>
-        Ready to enter the Arena?
-      </h2>
-
-      <p>
-        Open 0ms Arena directly in Telegram.
-      </p>
-
-      <a
-        href="https://t.me/omsArenaBot"
-        target="_blank"
-        class="button button-primary"
-      >
-        ✈ Launch 0ms Arena
-        <span>→</span>
-      </a>
-
+    <section class="section" id="about" aria-labelledby="aboutTitle">
+      <div class="about-band reveal">
+        <div><div class="section-label">Your move</div><h2 id="aboutTitle">Meet your squad in the arena.</h2><p>Open 0ms Arena on Telegram to launch the platform, explore the bot menus, and share your personal referral link. Referral tracking currently records Telegram attribution; tournament qualification and payouts require a separate backend integration.</p></div>
+        <div class="about-actions"><a class="button button-primary" href="https://t.me/omsArenaBot" target="_blank" rel="noopener noreferrer">Open the bot ↗</a><a class="button button-ghost" href="#commands">View commands ↓</a></div>
+      </div>
     </section>
 
+    <footer class="footer">
+      <div>© <span id="year">2026</span> <strong>0ms Arena</strong> · Built for the arena.</div>
+      <div class="footer-links"><a href="#features">Features</a><a href="#commands">Commands</a><a href="https://t.me/omsArenaBot" target="_blank" rel="noopener noreferrer">Telegram ↗</a></div>
+    </footer>
   </main>
 
-
-  <!-- Footer -->
-  <footer>
-
-    <div>
-      © 2026 <strong>0ms Arena</strong>
-    </div>
-
-    <div>
-      Telegram Bot · Built for communities
-    </div>
-
-  </footer>
-
-
+  <div id="toast" role="status" aria-live="polite" class="sr-only"></div>
   <script>
-    /* =========================
-       PARALLAX
-       ========================= */
+    const menuToggle = document.getElementById('menuToggle');
+    const navLinks = document.getElementById('navLinks');
+    menuToggle.addEventListener('click', () => {
+      const isOpen = navLinks.classList.toggle('open');
+      menuToggle.setAttribute('aria-expanded', String(isOpen));
+      menuToggle.textContent = isOpen ? '✕' : '☰';
+    });
+    navLinks.querySelectorAll('a').forEach(link => link.addEventListener('click', () => {
+      navLinks.classList.remove('open');
+      menuToggle.setAttribute('aria-expanded', 'false');
+      menuToggle.textContent = '☰';
+    }));
 
-    const hero = document.getElementById("heroContent");
-
-    let ticking = false;
-
-    window.addEventListener("scroll", () => {
-
-      if (!ticking) {
-
-        window.requestAnimationFrame(() => {
-
-          const y = window.scrollY;
-
-          if (y < window.innerHeight) {
-            hero.style.setProperty(
-              "--parallax",
-              `${y * 0.16}px`
-            );
-          }
-
-          ticking = false;
-        });
-
-        ticking = true;
-      }
-
+    const toast = document.getElementById('toast');
+    let toastTimer;
+    document.querySelectorAll('[data-copy]').forEach(button => {
+      button.addEventListener('click', async () => {
+        const value = button.dataset.copy || '';
+        try {
+          await navigator.clipboard.writeText(value);
+          button.textContent = 'Copied';
+          toast.textContent = `${value} copied. Paste it into Telegram.`;
+        } catch {
+          const helper = document.createElement('textarea');
+          helper.value = value;
+          helper.setAttribute('readonly', '');
+          helper.style.position = 'fixed';
+          helper.style.opacity = '0';
+          document.body.appendChild(helper);
+          helper.select();
+          const copied = document.execCommand('copy');
+          helper.remove();
+          button.textContent = copied ? 'Copied' : value;
+          toast.textContent = copied ? `${value} copied. Paste it into Telegram.` : `Command: ${value}`;
+        }
+        toast.classList.remove('sr-only');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => {
+          toast.classList.add('sr-only');
+          button.textContent = 'Copy';
+        }, 1600);
+      });
     });
 
-
-    /* =========================
-       REVEAL ON SCROLL
-       ========================= */
-
-    const observer =
-      new IntersectionObserver(
-        entries => {
-
-          entries.forEach(entry => {
-
-            if (entry.isIntersecting) {
-              entry.target.classList.add("visible");
-              observer.unobserve(entry.target);
-            }
-
-          });
-
-        },
-        {
-          threshold: 0.12
-        }
-      );
-
-
-    document
-      .querySelectorAll(".reveal")
-      .forEach(element => {
-        observer.observe(element);
-      });
-
-
-    /* =========================
-       MOUSE PARALLAX
-       ========================= */
-
-    const scene =
-      document.querySelector(".scene");
-
-    window.addEventListener(
-      "mousemove",
-      event => {
-
-        const x =
-          (event.clientX / window.innerWidth - .5);
-
-        const y =
-          (event.clientY / window.innerHeight - .5);
-
-        scene.style.transform =
-          `translate(${x * -10}px, ${y * -10}px)`;
-
-      }
-    );
+    document.getElementById('year').textContent = new Date().getFullYear();
+    const revealItems = document.querySelectorAll('.reveal');
+    if ('IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const observer = new IntersectionObserver(entries => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.12 });
+      revealItems.forEach(item => observer.observe(item));
+    } else {
+      revealItems.forEach(item => item.classList.add('visible'));
+    }
   </script>
-
 </body>
 </html>

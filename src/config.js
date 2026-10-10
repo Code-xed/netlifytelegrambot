@@ -9,7 +9,7 @@ export const config = {
   ownerId: Number(required("OWNER_ID")),
   webhookSecret: required("WEBHOOK_SECRET"),
   miniAppUrl: process.env.MINI_APP_URL || "",
-  botUsername: (process.env.BOT_USERNAME || "").replace(/^@/, "") || null,
+  botUsername: (process.env.BOT_USERNAME || "").replace(/^@/, "").trim(),
 };
 
 if (!Number.isSafeInteger(config.ownerId)) {

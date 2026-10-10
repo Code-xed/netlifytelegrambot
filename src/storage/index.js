@@ -1,12 +1,14 @@
 import { getStore } from "@netlify/blobs";
+import { randomBytes } from "node:crypto";
+import { isValidReferralCode } from "../referral-utils.js";
 
 const stores = {
   settings: "bot-settings",
   admins: "bot-admins",
   chats: "bot-chats",
   requests: "bot-requests",
-  referralCodes: "bot-referral-codes",
-  referralAttributions: "bot-referral-attributions",
+  requestPrompts: "bot-request-prompts",
+  referrals: "bot-referrals",
 };
 
 function store(name) {
@@ -87,13 +89,28 @@ export const storage = {
     },
   },
 
+  requestPrompts: {
+    async canRespond(chatId, cooldownMs = 60_000) {
+      const record = await getJson(stores.requestPrompts, String(chatId));
+      return !record?.respondedAt || Date.now() - record.respondedAt >= cooldownMs;
+    },
+    async markResponded(chatId) {
+      return setJson(stores.requestPrompts, String(chatId), {
+        chatId: Number(chatId),
+        respondedAt: Date.now(),
+      });
+    },
+  },
+
   requests: {
     async get(chatId) {
       return getJson(stores.requests, String(chatId));
     },
     async create(chat, requestedBy) {
       const existing = await this.get(chat.id);
-      if (existing?.status === "pending") return existing;
+      if (existing?.status === "pending") {
+        return { request: existing, created: false };
+      }
 
       const request = {
         chatId: Number(chat.id),
@@ -111,7 +128,7 @@ export const storage = {
       };
 
       await setJson(stores.requests, String(chat.id), request);
-      return request;
+      return { request, created: true };
     },
     async setStatus(chatId, status, reviewedBy) {
       const request = await this.get(chatId);
@@ -139,92 +156,96 @@ export const storage = {
   },
 
   referrals: {
-    async getOrCreateCode(user) {
-      const userId = Number(user.id);
-      const userKey = `user:${userId}`;
-      const existing = await getJson(stores.referralCodes, userKey);
-      if (existing?.code) return existing;
-
-      // Short hexadecimal codes fit Telegram's start-payload restrictions.
-      const { randomBytes } = await import("node:crypto");
-      for (let attempt = 0; attempt < 8; attempt += 1) {
-        const code = randomBytes(5).toString("hex");
-        const codeKey = `code:${code}`;
-        const collision = await getJson(stores.referralCodes, codeKey);
-        if (collision) continue;
-
-        const record = {
-          code,
-          userId,
-          username: user.username || null,
-          firstName: user.first_name || null,
-          createdAt: Date.now(),
-        };
-
-        await setJson(stores.referralCodes, codeKey, record);
-        await setJson(stores.referralCodes, userKey, record);
-        return record;
+    async getOrCreateCode(userId) {
+      const id = Number(userId);
+      if (!Number.isSafeInteger(id) || id <= 0) {
+        throw new Error("A valid Telegram user ID is required to create a referral code.");
       }
 
-      throw new Error("Could not allocate a unique referral code");
-    },
+      const userKey = `user:${id}`;
+      const existing = await getJson(stores.referrals, userKey);
+      if (existing?.code && isValidReferralCode(existing.code)) return existing.code;
 
-    async getByCode(code) {
-      if (!/^[a-f0-9]{10}$/i.test(String(code || ""))) return null;
-      return getJson(stores.referralCodes, `code:${String(code).toLowerCase()}`);
-    },
+      // Random 48-bit codes are short enough for Telegram deep links and hard to guess.
+      for (let attempt = 0; attempt < 5; attempt += 1) {
+        const code = randomBytes(6).toString("hex");
+        const occupied = await getJson(stores.referrals, `code:${code}`);
+        if (occupied && Number(occupied.userId) !== id) continue;
 
-    async attribute(invitee, code) {
-      const inviteeId = Number(invitee?.id);
-      if (!Number.isSafeInteger(inviteeId) || inviteeId <= 0) {
-        return { status: "invalid_invitee" };
+        const record = { userId: id, code, createdAt: Date.now() };
+        await setJson(stores.referrals, `code:${code}`, record);
+        await setJson(stores.referrals, userKey, record);
+        return code;
       }
 
-      const attributionKey = `invitee:${inviteeId}`;
-      const existing = await getJson(stores.referralAttributions, attributionKey);
-      if (existing) return { status: "already_attributed", attribution: existing };
-
-      const referrer = await this.getByCode(code);
-      if (!referrer) return { status: "invalid_code" };
-      if (Number(referrer.userId) === inviteeId) return { status: "self_referral" };
-
-      const attribution = {
-        inviteeId,
-        inviteeUsername: invitee.username || null,
-        inviteeFirstName: invitee.first_name || null,
-        referrerId: Number(referrer.userId),
-        referralCode: referrer.code,
-        attributedAt: Date.now(),
-        status: "attributed",
-      };
-
-      // First attribution wins; this record is not a reward or payment ledger.
-      await setJson(stores.referralAttributions, attributionKey, attribution);
-      return { status: "attributed", attribution };
+      throw new Error("Could not allocate a unique referral code. Please retry.");
     },
 
-    async listAttributions() {
-      const result = [];
-      const { blobs } = await store(stores.referralAttributions).list({ prefix: "invitee:" });
-      for (const blob of blobs) {
-        const item = await getJson(stores.referralAttributions, blob.key);
-        if (item) result.push(item);
+    async recordStart(userId, rawCode = null) {
+      const id = Number(userId);
+      if (!Number.isSafeInteger(id) || id <= 0) {
+        return { status: "invalid_user" };
       }
+
+      const seenKey = `seen:${id}`;
+      const seen = await getJson(stores.referrals, seenKey);
+      if (seen) return { status: "already_seen" };
+
+      // A malformed or unknown referral URL must not consume the user's first
+      // touch; a later valid link can still be attributed.
+      if (rawCode && !isValidReferralCode(rawCode)) {
+        return { status: "invalid_code" };
+      }
+
+      let result = { status: "organic" };
+      if (rawCode) {
+        const code = rawCode.toLowerCase();
+        const codeRecord = await getJson(stores.referrals, `code:${code}`);
+        if (!codeRecord || !Number.isSafeInteger(Number(codeRecord.userId))) {
+          return { status: "invalid_code" };
+        }
+        if (Number(codeRecord.userId) === id) {
+          result = { status: "self_referral" };
+        } else {
+          const attributionKey = `attribution:${id}`;
+          const existingAttribution = await getJson(stores.referrals, attributionKey);
+          if (existingAttribution) {
+            result = { status: "already_attributed", referrerId: existingAttribution.referrerId };
+          } else {
+            const attribution = {
+              referredUserId: id,
+              referrerId: Number(codeRecord.userId),
+              code,
+              attributedAt: Date.now(),
+              status: "registered",
+            };
+            await setJson(stores.referrals, attributionKey, attribution);
+            await setJson(
+              stores.referrals,
+              `by-referrer:${attribution.referrerId}:${id}`,
+              attribution,
+            );
+            result = { status: "attributed", referrerId: attribution.referrerId };
+          }
+        }
+      }
+
+      // Mark the account as seen after attribution is saved. Existing bot users
+      // from before this feature cannot be identified retroactively.
+      await setJson(stores.referrals, seenKey, { userId: id, firstSeenAt: Date.now() });
       return result;
     },
 
     async stats(userId) {
-      const attributions = await this.listAttributions();
-      const referrals = attributions.filter(
-        item => Number(item.referrerId) === Number(userId)
-      );
-      return {
-        total: referrals.length,
-        recent: referrals
-          .sort((a, b) => b.attributedAt - a.attributedAt)
-          .slice(0, 5),
-      };
+      const id = Number(userId);
+      const { blobs } = await store(stores.referrals).list({ prefix: `by-referrer:${id}:` });
+      const referrals = [];
+      for (const blob of blobs) {
+        const item = await getJson(stores.referrals, blob.key);
+        if (item && Number(item.referrerId) === id) referrals.push(item);
+      }
+      referrals.sort((a, b) => a.attributedAt - b.attributedAt);
+      return { total: referrals.length, referrals };
     },
   },
-
 };

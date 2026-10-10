@@ -1,61 +1,70 @@
-import { InlineKeyboard } from "grammy";
-import { config } from "../config.js";
 import { storage } from "../storage/index.js";
+import { canUse } from "../access.js";
+import { referralKeyboard } from "../ui.js";
+import { escapeHtml, referralStartLink } from "../referral-utils.js";
+import { config } from "../config.js";
 
-let cachedBotUsername = config.botUsername || null;
+async function getReferralLink(ctx) {
+  const code = await storage.referrals.getOrCreateCode(ctx.from.id);
+  const username = config.botUsername || (await ctx.api.getMe()).username;
+  return { code, url: referralStartLink(username, code) };
+}
 
-async function getBotUsername(ctx) {
-  if (cachedBotUsername) return cachedBotUsername;
-  const me = await ctx.api.getMe();
-  if (!me.username) throw new Error("Telegram bot has no username");
-  cachedBotUsername = me.username;
-  return cachedBotUsername;
+async function editOrReply(ctx, text, options) {
+  if (ctx.callbackQuery) {
+    const message = ctx.callbackQuery.message;
+    if (message?.caption !== undefined) {
+      return ctx.editMessageCaption({ caption: text, ...options });
+    }
+    return ctx.editMessageText(text, options);
+  }
+  return ctx.reply(text, options);
 }
 
 export async function showReferral(ctx) {
-  if (!ctx.from) return;
+  if (!ctx.from || ctx.from.is_bot) {
+    if (ctx.callbackQuery) return ctx.answerCallbackQuery({ text: "This menu is for user accounts.", show_alert: true });
+    return;
+  }
+  if (!(await canUse(ctx))) {
+    if (ctx.callbackQuery) return ctx.answerCallbackQuery({ text: "Not authorized.", show_alert: true });
+    return;
+  }
+  // Referral data is personal. Group commands are intentionally silent;
+  // the same dashboard remains available from the private bot chat.
   if (ctx.chat?.type !== "private") {
-    if (ctx.callbackQuery) await ctx.answerCallbackQuery({ text: "Open the bot in a private chat." });
-    else await ctx.reply("Open the bot in a private chat to view your referral link.");
+    if (ctx.callbackQuery) {
+      return ctx.answerCallbackQuery({ text: "Open the bot privately to manage referrals." });
+    }
     return;
   }
 
-  if (ctx.callbackQuery) await ctx.answerCallbackQuery();
+  try {
+    const [{ code, url }, stats] = await Promise.all([
+      getReferralLink(ctx),
+      storage.referrals.stats(ctx.from.id),
+    ]);
 
-  const referral = await storage.referrals.getOrCreateCode(ctx.from);
-  const username = await getBotUsername(ctx);
-  const link = `https://t.me/${username}?start=ref_${referral.code}`;
-  const stats = await storage.referrals.stats(ctx.from.id);
-  const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent("Join me on 0ms Arena!")}`;
+    const text =
+      `🤝 <b>0MS ARENA · REFERRAL HUB</b>\n` +
+      `━━━━━━━━━━━━━━━━━━\n\n` +
+      `Invite friends to discover 0ms Arena. Your personal link is below:\n\n` +
+      `🔗 <code>${escapeHtml(url)}</code>\n\n` +
+      `👥 <b>Invites tracked:</b> ${stats.total}\n` +
+      `🪪 <b>Your code:</b> <code>${escapeHtml(code)}</code>\n\n` +
+      `<i>Tracking note: this dashboard records Telegram referral attribution. Tournament qualification and reward payouts are not connected yet, so no reward is promised or credited here.</i>`;
 
-  const text =
-    `👥 <b>Your 0ms Arena referrals</b>\n\n` +
-    `Share your personal link to invite people to the bot:\n` +
-    `<code>${link}</code>\n\n` +
-    `👤 <b>Recorded Telegram sign-ups:</b> ${stats.total}\n\n` +
-    `A person is counted when they open the bot through your link for the first time. ` +
-    `The first valid referral attribution is kept.\n\n` +
-    `ℹ️ This currently tracks Telegram referrals only. Tournament qualification and reward payments are not connected yet.`;
-
-  const keyboard = new InlineKeyboard()
-    .url("📨 Share referral link", shareUrl)
-    .row()
-    .text("🔄 Refresh", "referral:show")
-    .text("🏠 Home", "nav:home");
-
-  if (ctx.callbackQuery) {
-    try {
-      await ctx.editMessageCaption({ caption: text, parse_mode: "HTML", reply_markup: keyboard });
-      return;
-    } catch (error) {
-      // If the source message is not a photo/caption, fall back to a new message.
-      if (!String(error?.description || error?.message || "").includes("message is not modified")) {
-        await ctx.reply(text, { parse_mode: "HTML", reply_markup: keyboard });
-        return;
-      }
-      return;
+    await editOrReply(ctx, text, {
+      parse_mode: "HTML",
+      reply_markup: referralKeyboard(url),
+      link_preview_options: { is_disabled: true },
+    });
+    if (ctx.callbackQuery) await ctx.answerCallbackQuery();
+  } catch (error) {
+    console.error("Could not load referral dashboard:", error);
+    if (ctx.callbackQuery) {
+      return ctx.answerCallbackQuery({ text: "Referral dashboard unavailable. Try again shortly.", show_alert: true });
     }
+    return ctx.reply("The referral dashboard is temporarily unavailable. Please try again shortly.");
   }
-
-  await ctx.reply(text, { parse_mode: "HTML", reply_markup: keyboard });
 }

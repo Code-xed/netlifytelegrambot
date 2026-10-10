@@ -1,10 +1,20 @@
 import { InlineKeyboard } from "grammy";
 import { storage } from "../storage/index.js";
 import { config } from "../config.js";
-import {
-  requestKeyboard,
-  requestReviewKeyboard,
-} from "../ui.js";
+import { requestReviewKeyboard } from "../ui.js";
+import { escapeHtml } from "../referral-utils.js";
+
+async function replyOrEdit(ctx, text, options = {}) {
+  if (ctx.callbackQuery) return ctx.editMessageText(text, options);
+  return ctx.reply(text, options);
+}
+
+async function replyGroupStatus(ctx, text, options = {}) {
+  if (!(await storage.requestPrompts.canRespond(ctx.chat.id))) return;
+  const sent = await ctx.reply(text, options);
+  await storage.requestPrompts.markResponded(ctx.chat.id);
+  return sent;
+}
 
 export async function requestFromGroup(ctx) {
   if (!ctx.chat || ctx.chat.type === "private") {
@@ -27,15 +37,19 @@ export async function requestFromGroup(ctx) {
   const settings = await storage.settings.get();
 
   if (settings.accessMode === "all") {
-    return ctx.reply(
-      "🌍 Access mode is All. This chat does not need approval."
+    return replyGroupStatus(
+      ctx,
+      "🌍 Access is open. No approval is needed for this group.",
     );
   }
 
   if (await storage.chats.get(ctx.chat.id)) {
-    return ctx.reply(
-      "✅ This chat is already approved."
-    );
+    return replyGroupStatus(ctx, "✅ This chat is already approved.");
+  }
+
+  const pendingRequest = await storage.requests.get(ctx.chat.id);
+  if (pendingRequest?.status === "pending") {
+    return replyGroupStatus(ctx, "📨 An access request is already pending. No need to submit it again.");
   }
 
   const me = await ctx.api.getMe();
@@ -43,13 +57,12 @@ export async function requestFromGroup(ctx) {
   const deepLink =
     `https://t.me/${me.username}?start=request_${ctx.chat.id}`;
 
-  return ctx.reply(
-    "🔐 This chat is not approved yet.\n\n" +
-    "Open my private chat and submit an access request for this group.",
+  return replyGroupStatus(
+    ctx,
+    "🔐 This chat needs approval. Use the button to request access privately.",
     {
-      reply_markup: new InlineKeyboard()
-        .url("📩  REQUEST ACCESS", deepLink),
-    }
+      reply_markup: new InlineKeyboard().url("📩 REQUEST ACCESS", deepLink),
+    },
   );
 }
 
@@ -57,29 +70,42 @@ export async function submitRequest(ctx, chatId) {
   const settings = await storage.settings.get();
 
   if (settings.accessMode === "all") {
-    return ctx.editMessageText(
+    return replyOrEdit(
+      ctx,
       "🌍 Access mode is All. No approval is required."
     );
   }
 
-  const chat = await ctx.api.getChat(chatId);
+  let chat;
+  try {
+    chat = await ctx.api.getChat(chatId);
+  } catch (error) {
+    console.error(`Could not access group ${chatId} for an access request:`, error);
+    return replyOrEdit(
+      ctx,
+      "❌ I couldn't access that group. Make sure the bot is still in the group and that the chat ID is correct, then try again."
+    );
+  }
 
   if (!["group", "supergroup"].includes(chat.type)) {
-    return ctx.editMessageText(
+    return replyOrEdit(
+      ctx,
       "❌ That chat is not a group."
     );
   }
 
-  const request =
-    await storage.requests.create(
-      chat,
-      ctx.from
+  const creation = await storage.requests.create(chat, ctx.from);
+  const request = creation.request;
+
+  if (!creation.created) {
+    return replyOrEdit(
+      ctx,
+      "📨 An access request for this group is already pending. No duplicate notification was sent.",
     );
+  }
 
   if (request.status !== "pending") {
-    return ctx.editMessageText(
-      `This request is already ${request.status}.`
-    );
+    return replyOrEdit(ctx, `This request is already ${request.status}.`);
   }
 
   const admins =
@@ -97,9 +123,9 @@ export async function submitRequest(ctx, chatId) {
 
   const text =
     `🔔 <b>New bot access request</b>\n\n` +
-    `💬 ${chat.title || "Untitled group"}\n` +
-    `🆔 ${chat.id}\n` +
-    `👤 Requested by: ${requester}`;
+    `💬 ${escapeHtml(chat.title || "Untitled group")}\n` +
+    `🆔 <code>${chat.id}</code>\n` +
+    `👤 Requested by: ${escapeHtml(requester)}`;
 
   for (const userId of recipients) {
     try {
@@ -120,7 +146,8 @@ export async function submitRequest(ctx, chatId) {
     }
   }
 
-  return ctx.editMessageText(
+  return replyOrEdit(
+    ctx,
     "📨 Request submitted.\n\n" +
     "The owner/admins will review it."
   );

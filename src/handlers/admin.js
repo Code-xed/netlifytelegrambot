@@ -2,6 +2,7 @@ import { InlineKeyboard } from "grammy";
 import { storage } from "../storage/index.js";
 import { config } from "../config.js";
 import { isAdmin, modeLabel } from "../access.js";
+import { escapeHtml } from "../referral-utils.js";
 
 import {
   mainAdminKeyboard,
@@ -12,7 +13,7 @@ import {
 } from "../ui.js";
 
 function chatTitle(request) {
-  return request.title || request.chatId;
+  return escapeHtml(request.title || request.chatId);
 }
 
 function panelText(settings) {
@@ -22,7 +23,7 @@ function panelText(settings) {
       : "🔒 RESTRICTED";
 
   return (
-    `⚙️ <b>ALPHA CONTROL PANEL</b>\n\n` +
+    `⚙️ <b>0MS ARENA CONTROL CENTER</b>\n\n` +
     `🛡 <b>ACCESS CONTROL</b>\n` +
     `Current mode: ${mode}\n\n` +
     `Choose a section below.`
@@ -30,7 +31,8 @@ function panelText(settings) {
 }
 
 export async function showPanel(ctx) {
-  if (!await isAdmin(ctx.from.id)) {
+  if (ctx.chat?.type !== "private") return;
+  if (!ctx.from || !await isAdmin(ctx.from.id)) {
     return ctx.reply("⛔ Admins only.");
   }
 
@@ -114,9 +116,9 @@ export async function showRequests(ctx) {
     `💬 ${chatTitle(first)}\n` +
     `🆔 ${first.chatId}\n` +
     `👤 ${
-      first.requestedBy.name ||
+      escapeHtml(first.requestedBy.name ||
       first.requestedBy.username ||
-      first.requestedBy.id
+      first.requestedBy.id)
     }`,
     {
       parse_mode: "HTML",
@@ -270,7 +272,7 @@ export async function showChats(ctx) {
         .map(
           (chat, index) =>
             `${index + 1}. 💬 ${
-              chat.title || "Unnamed chat"
+              escapeHtml(chat.title || "Unnamed chat")
             }\n` +
             `   🆔 ${chat.chatId}`
         )
@@ -319,7 +321,7 @@ export async function showAdmins(ctx) {
     ? admins
         .map(
           (admin, index) =>
-            `${index + 1}. 👤 ${admin.userId}`
+            `${index + 1}. 👤 <code>${admin.userId}</code>`
         )
         .join("\n")
     : "No additional administrators.";
@@ -410,7 +412,8 @@ export async function addAdmin(
   ctx,
   userId
 ) {
-  if (Number(ctx.from.id) !== config.ownerId) {
+  if (ctx.chat?.type !== "private") return;
+  if (!ctx.from || Number(ctx.from.id) !== config.ownerId) {
     return ctx.reply(
       "⛔ Only the owner can add administrators."
     );
