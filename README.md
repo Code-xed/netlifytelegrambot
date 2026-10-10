@@ -1,11 +1,3 @@
-## Latest interaction fixes
-
-- Home navigation edits the current text or photo caption according to the message type.
-- Close removes the inline keyboard using an explicit empty keyboard markup.
-- Repeating a menu action that produces identical text/markup is treated as a harmless no-op, not a Telegram 400 error.
-- Existing `primary` and red `danger` inline-button styles from the working source are preserved.
-- Removing an approved chat refreshes the list and acknowledges the callback only once.
-
 # 0ms Arena Telegram Bot
 
 A serverless Telegram bot built with Node.js, grammY, Netlify Functions, and Netlify Blobs. This revamp keeps the existing access-management and admin flows, refreshes the public landing page and bot menus, and adds Telegram referral attribution.

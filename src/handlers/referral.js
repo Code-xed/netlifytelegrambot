@@ -1,5 +1,4 @@
 import { storage } from "../storage/index.js";
-import { safeEditMessage } from "../telegram-utils.js";
 import { canUse } from "../access.js";
 import { referralKeyboard } from "../ui.js";
 import { escapeHtml, referralStartLink } from "../referral-utils.js";
@@ -15,9 +14,9 @@ async function editOrReply(ctx, text, options) {
   if (ctx.callbackQuery) {
     const message = ctx.callbackQuery.message;
     if (message?.caption !== undefined) {
-      return safeEditMessage(ctx, "editMessageCaption", { caption: text, ...options });
+      return ctx.editMessageCaption({ caption: text, ...options });
     }
-    return safeEditMessage(ctx, "editMessageText", text, options);
+    return ctx.editMessageText(text, options);
   }
   return ctx.reply(text, options);
 }

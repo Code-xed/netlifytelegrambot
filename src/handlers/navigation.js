@@ -1,6 +1,4 @@
-import { InlineKeyboard } from "grammy";
 import { startKeyboard, helpKeyboard, commandsKeyboard } from "../ui.js";
-import { safeEditMessage } from "../telegram-utils.js";
 
 const welcomeCaption =
   `🎮 <b>WELCOME TO 0MS ARENA</b>\n` +
@@ -11,9 +9,9 @@ const welcomeCaption =
 async function editCurrentMessage(ctx, text, options) {
   const message = ctx.callbackQuery?.message;
   if (message?.caption !== undefined) {
-    return safeEditMessage(ctx, "editMessageCaption", { caption: text, ...options });
+    return ctx.editMessageCaption({ caption: text, ...options });
   }
-  return safeEditMessage(ctx, "editMessageText", text, options);
+  return ctx.editMessageText(text, options);
 }
 
 export async function handleNavigation(ctx, config, action) {
@@ -51,7 +49,7 @@ export async function handleNavigation(ctx, config, action) {
       });
 
     case "close":
-      return safeEditMessage(ctx, "editMessageReplyMarkup", { reply_markup: new InlineKeyboard() });
+      return ctx.editMessageReplyMarkup({ reply_markup: undefined });
 
     default:
       return;

@@ -1,5 +1,4 @@
 import { InlineKeyboard } from "grammy";
-import { safeEditMessage } from "../telegram-utils.js";
 import { storage } from "../storage/index.js";
 import { config } from "../config.js";
 import { isAdmin, modeLabel } from "../access.js";
@@ -60,7 +59,7 @@ export async function panelCallback(ctx) {
 
   const settings = await storage.settings.get();
 
-  await safeEditMessage(ctx, "editMessageText", 
+  await ctx.editMessageText(
     panelText(settings),
     {
       parse_mode: "HTML",
@@ -84,7 +83,7 @@ export async function showRequests(ctx) {
   const requests = await storage.requests.list("pending");
 
   if (!requests.length) {
-    await safeEditMessage(ctx, "editMessageText", 
+    await ctx.editMessageText(
       `📥 <b>PENDING REQUESTS</b>\n\n` +
       `✅ No pending access requests.`,
       {
@@ -111,7 +110,7 @@ export async function showRequests(ctx) {
 
   const first = requests[0];
 
-  await safeEditMessage(ctx, "editMessageText", 
+  await ctx.editMessageText(
     `📥 <b>PENDING REQUESTS</b>\n\n` +
     `📊 ${requests.length} pending\n\n` +
     `💬 ${chatTitle(first)}\n` +
@@ -190,7 +189,7 @@ export async function reviewRequest(
       );
     }
 
-    await safeEditMessage(ctx, "editMessageText", 
+    await ctx.editMessageText(
       `✅ <b>REQUEST APPROVED</b>\n\n` +
       `💬 ${chatTitle(request)}\n` +
       `🆔 ${request.chatId}`,
@@ -231,7 +230,7 @@ export async function reviewRequest(
       );
     }
 
-    await safeEditMessage(ctx, "editMessageText", 
+    await ctx.editMessageText(
       `❌ <b>REQUEST REJECTED</b>\n\n` +
       `💬 ${chatTitle(request)}\n` +
       `🆔 ${request.chatId}`,
@@ -258,7 +257,7 @@ export async function reviewRequest(
   return ctx.answerCallbackQuery();
 }
 
-export async function showChats(ctx, callbackNotice = "") {
+export async function showChats(ctx) {
   if (!await isAdmin(ctx.from.id)) {
     return ctx.answerCallbackQuery({
       text: "Not authorized.",
@@ -280,7 +279,7 @@ export async function showChats(ctx, callbackNotice = "") {
         .join("\n\n")
     : "No approved chats.";
 
-  await safeEditMessage(ctx, "editMessageText", 
+  await ctx.editMessageText(
     `💬 <b>APPROVED CHATS</b>\n\n${chatText}`,
     {
       parse_mode: "HTML",
@@ -288,7 +287,7 @@ export async function showChats(ctx, callbackNotice = "") {
     }
   );
 
-  return ctx.answerCallbackQuery(callbackNotice ? { text: callbackNotice } : {});
+  return ctx.answerCallbackQuery();
 }
 
 export async function removeChat(ctx, chatId) {
@@ -301,7 +300,11 @@ export async function removeChat(ctx, chatId) {
 
   await storage.chats.remove(chatId);
 
-  return showChats(ctx, "Chat removed.");
+  await ctx.answerCallbackQuery({
+    text: "Chat removed.",
+  });
+
+  return showChats(ctx);
 }
 
 export async function showAdmins(ctx) {
@@ -323,7 +326,7 @@ export async function showAdmins(ctx) {
         .join("\n")
     : "No additional administrators.";
 
-  await safeEditMessage(ctx, "editMessageText", 
+  await ctx.editMessageText(
     `👥 <b>ADMINISTRATORS</b>\n\n` +
     `👑 Owner: ${config.ownerId}\n\n` +
     adminText,
@@ -347,7 +350,7 @@ export async function showMode(ctx) {
   const settings =
     await storage.settings.get();
 
-  await safeEditMessage(ctx, "editMessageText", 
+  await ctx.editMessageText(
     `🔐 <b>ACCESS CONTROL</b>\n\n` +
     `Current mode: ${modeLabel(
       settings.accessMode
@@ -387,7 +390,7 @@ export async function setMode(ctx, mode) {
     accessMode: mode,
   });
 
-  await safeEditMessage(ctx, "editMessageText", 
+  await ctx.editMessageText(
     panelText({
       accessMode: mode,
     }),

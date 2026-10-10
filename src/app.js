@@ -23,7 +23,6 @@ import {
 } from "./handlers/admin.js";
 
 import { helpKeyboard } from "./ui.js";
-import { safeEditMessage } from "./telegram-utils.js";
 
 export const bot = new Bot(config.botToken);
 
@@ -250,7 +249,7 @@ bot.callbackQuery(
 bot.callbackQuery("request:cancel", async ctx => {
   await ctx.answerCallbackQuery();
 
-  return safeEditMessage(ctx, "editMessageText",
+  return ctx.editMessageText(
     "❌ Request cancelled."
   );
 });
