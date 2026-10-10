@@ -13,7 +13,11 @@ function welcomeCaption(referralStatus = null) {
       ? "\n\nℹ️ You cannot use your own referral link."
       : referralStatus === "invalid_code"
         ? "\n\nℹ️ That referral link could not be verified. You can still use the platform normally."
-        : "";
+        : referralStatus === "already_registered"
+          ? "\n\nℹ️ Your Mini App account is already registered, so this link cannot add a referral retroactively."
+          : referralStatus === "unavailable"
+            ? "\n\n⚠️ The referral could not be saved right now. Please retry using the same link shortly."
+            : "";
 
   return (
     `🎮 <b>WELCOME TO 0MS ARENA</b>\n` +
@@ -78,13 +82,15 @@ export async function start(ctx) {
 
   let referralStatus = null;
   if (ctx.from && !ctx.from.is_bot) {
+    let rawReferral = null;
     try {
       const code = normalizeReferralPayload(payload);
-      const rawReferral = payload.startsWith("ref_") ? (code || payload) : null;
+      rawReferral = payload.startsWith("ref_") ? (code || payload) : null;
       const result = await storage.referrals.recordStart(ctx.from.id, rawReferral);
       referralStatus = result.status;
     } catch (error) {
       console.error("Referral attribution could not be recorded:", error);
+      if (rawReferral) referralStatus = "unavailable";
     }
   }
 

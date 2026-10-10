@@ -1,4 +1,5 @@
 import { getStore } from "@netlify/blobs";
+import { neon } from "@neondatabase/serverless";
 import { randomBytes } from "node:crypto";
 import { isValidReferralCode } from "../referral-utils.js";
 
@@ -16,6 +17,110 @@ function store(name) {
     name,
     consistency: "strong",
   });
+}
+
+let neonClient;
+
+function getNeonClient() {
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error("DATABASE_URL is required for referral operations.");
+  }
+  if (!neonClient) neonClient = neon(connectionString);
+  return neonClient;
+}
+
+function sqlTimestamp(milliseconds) {
+  const value = Number(milliseconds);
+  if (!Number.isFinite(value) || value <= 0) return null;
+  const date = new Date(value);
+  if (!Number.isFinite(date.getTime())) return null;
+  return date.toISOString().slice(0, 19).replace("T", " ");
+}
+
+function timestampMillis(value) {
+  if (typeof value === "number") return Number.isFinite(value) && value > 0 ? value : Date.now();
+  const parsed = value instanceof Date ? value.getTime() : Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : Date.now();
+}
+
+async function findNeonCodeRecords(sql, telegramId, code) {
+  return sql`
+    SELECT telegram_user_id, referral_code, created_at
+    FROM public.referral_codes
+    WHERE telegram_user_id = ${String(telegramId)}
+       OR referral_code = ${code}
+    LIMIT 2
+  `;
+}
+
+async function ensureNeonCodeOwnership(sql, telegramId, code, createdAt = null) {
+  const id = String(telegramId);
+  const normalizedCode = String(code).toLowerCase();
+  const existing = await findNeonCodeRecords(sql, id, normalizedCode);
+  const ownerRecord = existing.find(row => String(row.telegram_user_id) === id);
+  const codeRecord = existing.find(row => row.referral_code === normalizedCode);
+
+  if (ownerRecord) {
+    if (ownerRecord.referral_code !== normalizedCode) {
+      throw new Error("This Telegram account already has a different permanent referral code in Neon.");
+    }
+    if (codeRecord && String(codeRecord.telegram_user_id) !== id) {
+      throw new Error("Referral-code ownership conflicts with Neon.");
+    }
+    return ownerRecord;
+  }
+
+  if (codeRecord && String(codeRecord.telegram_user_id) !== id) {
+    throw new Error("This referral code is already owned by another Telegram user in Neon.");
+  }
+
+  const createdTimestamp = sqlTimestamp(createdAt);
+  if (createdTimestamp) {
+    await sql`
+      INSERT INTO public.referral_codes (telegram_user_id, referral_code, created_at)
+      VALUES (${id}, ${normalizedCode}, ${createdTimestamp}::timestamp)
+      ON CONFLICT DO NOTHING
+    `;
+  } else {
+    await sql`
+      INSERT INTO public.referral_codes (telegram_user_id, referral_code)
+      VALUES (${id}, ${normalizedCode})
+      ON CONFLICT DO NOTHING
+    `;
+  }
+
+  const verified = await findNeonCodeRecords(sql, id, normalizedCode);
+  const verifiedOwner = verified.find(row => String(row.telegram_user_id) === id);
+  const verifiedCode = verified.find(row => row.referral_code === normalizedCode);
+  if (
+    !verifiedOwner ||
+    verifiedOwner.referral_code !== normalizedCode ||
+    (verifiedCode && String(verifiedCode.telegram_user_id) !== id)
+  ) {
+    throw new Error("Referral-code ownership could not be saved safely in Neon.");
+  }
+  return verifiedOwner;
+}
+
+async function findNeonCodeByOwner(sql, telegramId) {
+  const rows = await sql`
+    SELECT telegram_user_id, referral_code, created_at
+    FROM public.referral_codes
+    WHERE telegram_user_id = ${String(telegramId)}
+    LIMIT 1
+  `;
+  return rows[0] ?? null;
+}
+
+async function saveBlobCodeRecords(id, code, createdAt = Date.now()) {
+  const occupied = await getJson(stores.referrals, `code:${code}`);
+  if (occupied && Number(occupied.userId) !== Number(id)) {
+    throw new Error("Referral-code ownership conflicts with existing Netlify Blobs data.");
+  }
+  const record = { userId: Number(id), code, createdAt: timestampMillis(createdAt) };
+  await setJson(stores.referrals, `code:${code}`, record);
+  await setJson(stores.referrals, `user:${id}`, record);
 }
 
 async function getJson(name, key) {
@@ -162,20 +267,58 @@ export const storage = {
         throw new Error("A valid Telegram user ID is required to create a referral code.");
       }
 
-      const userKey = `user:${id}`;
-      const existing = await getJson(stores.referrals, userKey);
-      if (existing?.code && isValidReferralCode(existing.code)) return existing.code;
+      const sql = getNeonClient();
+      const dbOwner = await findNeonCodeByOwner(sql, id);
+      if (dbOwner) {
+        const canonicalCode = String(dbOwner.referral_code).toLowerCase();
+        if (!isValidReferralCode(canonicalCode)) {
+          throw new Error("The permanent referral code in Neon is invalid.");
+        }
+        const localRecord = await getJson(stores.referrals, `user:${id}`);
+        await saveBlobCodeRecords(
+          id,
+          canonicalCode,
+          localRecord?.code === canonicalCode ? localRecord.createdAt : timestampMillis(dbOwner.created_at),
+        );
+        return canonicalCode;
+      }
 
-      // Random 48-bit codes are short enough for Telegram deep links and hard to guess.
-      for (let attempt = 0; attempt < 5; attempt += 1) {
-        const code = randomBytes(6).toString("hex");
-        const occupied = await getJson(stores.referrals, `code:${code}`);
-        if (occupied && Number(occupied.userId) !== id) continue;
+      const localRecord = await getJson(stores.referrals, `user:${id}`);
+      const preferredCode = localRecord?.code && isValidReferralCode(localRecord.code)
+        ? localRecord.code.toLowerCase()
+        : null;
 
-        const record = { userId: id, code, createdAt: Date.now() };
-        await setJson(stores.referrals, `code:${code}`, record);
-        await setJson(stores.referrals, userKey, record);
-        return code;
+      // Preserve existing Blobs-generated codes whenever Neon has no conflicting owner.
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        const code = attempt === 0 && preferredCode
+          ? preferredCode
+          : randomBytes(6).toString("hex");
+        const codeRows = await sql`
+          SELECT telegram_user_id, referral_code
+          FROM public.referral_codes
+          WHERE referral_code = ${code}
+          LIMIT 1
+        `;
+        if (codeRows.length && String(codeRows[0].telegram_user_id) !== String(id)) {
+          continue;
+        }
+
+        try {
+          const record = await ensureNeonCodeOwnership(
+            sql,
+            id,
+            code,
+            attempt === 0 && preferredCode ? localRecord.createdAt : Date.now(),
+          );
+          await saveBlobCodeRecords(id, code, record.created_at ?? localRecord?.createdAt ?? Date.now());
+          return code;
+        } catch (error) {
+          // A conflicting code can be replaced with a fresh code, but its owner is never reassigned.
+          if (attempt === 0 && preferredCode && /different permanent referral code|already owned by another|ownership conflicts/i.test(error.message)) {
+            continue;
+          }
+          throw error;
+        }
       }
 
       throw new Error("Could not allocate a unique referral code. Please retry.");
@@ -207,11 +350,35 @@ export const storage = {
       let result = { status: "organic" };
       if (rawCode) {
         const code = rawCode.toLowerCase();
-        const codeRecord = await getJson(stores.referrals, `code:${code}`);
-        if (!codeRecord || !Number.isSafeInteger(Number(codeRecord.userId))) {
+        const blobCodeRecord = await getJson(stores.referrals, `code:${code}`);
+        const sql = getNeonClient();
+        const neonCodeRows = await sql`
+          SELECT telegram_user_id, referral_code, created_at
+          FROM public.referral_codes
+          WHERE referral_code = ${code}
+          LIMIT 1
+        `;
+        const neonCodeRecord = neonCodeRows[0] ?? null;
+
+        // Neon is authoritative. Blobs provides a migration fallback for codes created before this integration.
+        const referrerId = neonCodeRecord
+          ? Number(neonCodeRecord.telegram_user_id)
+          : Number(blobCodeRecord?.userId);
+        if (
+          !Number.isSafeInteger(referrerId) ||
+          referrerId <= 0 ||
+          (blobCodeRecord && Number(blobCodeRecord.userId) !== referrerId && neonCodeRecord)
+        ) {
           return { status: "invalid_code" };
         }
-        if (Number(codeRecord.userId) === id) {
+        if (!neonCodeRecord && !blobCodeRecord) {
+          return { status: "invalid_code" };
+        }
+        if (neonCodeRecord && !blobCodeRecord) {
+          await saveBlobCodeRecords(referrerId, code, neonCodeRecord.created_at);
+        }
+
+        if (referrerId === id) {
           result = { status: "self_referral" };
         } else if (existingAttribution?.status === "finalized") {
           result = {
@@ -219,11 +386,85 @@ export const storage = {
             referrerId: existingAttribution.referrerId,
           };
         } else {
+          // A Telegram account that already registered in the Mini App cannot be attributed retroactively.
+          const registeredUsers = await sql`
+            SELECT id
+            FROM public."user"
+            WHERE telegram_id = ${String(id)}
+            LIMIT 1
+          `;
+          if (registeredUsers.length > 0) {
+            if (!seen) {
+              await setJson(stores.referrals, seenKey, { userId: id, firstSeenAt: Date.now() });
+            }
+            return { status: "already_registered" };
+          }
+
+          // The incoming code must be permanently owned by this referrer in Neon.
+          if (!neonCodeRecord) {
+            try {
+              await ensureNeonCodeOwnership(
+                sql,
+                referrerId,
+                code,
+                blobCodeRecord.createdAt,
+              );
+            } catch (error) {
+              if (/different permanent referral code|already owned by another|ownership conflicts/i.test(error.message)) {
+                return { status: "invalid_code" };
+              }
+              throw error;
+            }
+          }
+
+          const attributedAt = Date.now();
+          const timestamp = sqlTimestamp(attributedAt);
+          const synced = await sql`
+            INSERT INTO public.referral_attributions (
+              referred_telegram_id,
+              referrer_telegram_id,
+              referral_code,
+              source_status,
+              attributed_at,
+              synced_at
+            ) VALUES (
+              ${String(id)},
+              ${String(referrerId)},
+              ${code},
+              'pending',
+              ${timestamp}::timestamp,
+              CURRENT_TIMESTAMP
+            )
+            ON CONFLICT (referred_telegram_id) DO UPDATE SET
+              referrer_telegram_id = EXCLUDED.referrer_telegram_id,
+              referral_code = EXCLUDED.referral_code,
+              attributed_at = EXCLUDED.attributed_at,
+              synced_at = CURRENT_TIMESTAMP
+            WHERE public.referral_attributions.source_status = 'pending'
+              AND public.referral_attributions.referred_user_id IS NULL
+            RETURNING id
+          `;
+
+          if (synced.length === 0) {
+            const current = await sql`
+              SELECT source_status, referred_user_id
+              FROM public.referral_attributions
+              WHERE referred_telegram_id = ${String(id)}
+              LIMIT 1
+            `;
+            if (current.length && (
+              current[0].source_status !== "pending" || current[0].referred_user_id != null
+            )) {
+              return { status: "already_finalized" };
+            }
+            throw new Error("Referral attribution could not be saved in Neon.");
+          }
+
           const attribution = {
             referredUserId: id,
-            referrerId: Number(codeRecord.userId),
+            referrerId,
             code,
-            attributedAt: Date.now(),
+            attributedAt,
             status: "pending",
           };
 
