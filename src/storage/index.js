@@ -187,14 +187,21 @@ export const storage = {
         return { status: "invalid_user" };
       }
 
-      const seenKey = `seen:${id}`;
-      const seen = await getJson(stores.referrals, seenKey);
-      if (seen) return { status: "already_seen" };
-
-      // A malformed or unknown referral URL must not consume the user's first
-      // touch; a later valid link can still be attributed.
+      // Invalid links must not consume the user's first touch or replace a
+      // previously valid pending referral.
       if (rawCode && !isValidReferralCode(rawCode)) {
         return { status: "invalid_code" };
+      }
+
+      const seenKey = `seen:${id}`;
+      const seen = await getJson(stores.referrals, seenKey);
+      const attributionKey = `attribution:${id}`;
+      const existingAttribution = await getJson(stores.referrals, attributionKey);
+
+      // A user who was already seen organically cannot be claimed retroactively.
+      // Once a pending referral exists, however, a later valid referral replaces it.
+      if (seen && (!rawCode || !existingAttribution)) {
+        return { status: "already_seen" };
       }
 
       let result = { status: "organic" };
@@ -206,33 +213,43 @@ export const storage = {
         }
         if (Number(codeRecord.userId) === id) {
           result = { status: "self_referral" };
+        } else if (existingAttribution?.status === "finalized") {
+          result = {
+            status: "already_finalized",
+            referrerId: existingAttribution.referrerId,
+          };
         } else {
-          const attributionKey = `attribution:${id}`;
-          const existingAttribution = await getJson(stores.referrals, attributionKey);
-          if (existingAttribution) {
-            result = { status: "already_attributed", referrerId: existingAttribution.referrerId };
-          } else {
-            const attribution = {
-              referredUserId: id,
-              referrerId: Number(codeRecord.userId),
-              code,
-              attributedAt: Date.now(),
-              status: "registered",
-            };
-            await setJson(stores.referrals, attributionKey, attribution);
-            await setJson(
-              stores.referrals,
-              `by-referrer:${attribution.referrerId}:${id}`,
-              attribution,
+          const attribution = {
+            referredUserId: id,
+            referrerId: Number(codeRecord.userId),
+            code,
+            attributedAt: Date.now(),
+            status: "pending",
+          };
+
+          if (existingAttribution && Number(existingAttribution.referrerId) !== attribution.referrerId) {
+            await store(stores.referrals).delete(
+              `by-referrer:${existingAttribution.referrerId}:${id}`,
             );
-            result = { status: "attributed", referrerId: attribution.referrerId };
           }
+          await setJson(stores.referrals, attributionKey, attribution);
+          await setJson(
+            stores.referrals,
+            `by-referrer:${attribution.referrerId}:${id}`,
+            attribution,
+          );
+          result = {
+            status: "attributed",
+            referrerId: attribution.referrerId,
+            replaced: Boolean(existingAttribution),
+          };
         }
       }
 
-      // Mark the account as seen after attribution is saved. Existing bot users
-      // from before this feature cannot be identified retroactively.
-      await setJson(stores.referrals, seenKey, { userId: id, firstSeenAt: Date.now() });
+      // Preserve the original first-seen timestamp on later referral visits.
+      if (!seen) {
+        await setJson(stores.referrals, seenKey, { userId: id, firstSeenAt: Date.now() });
+      }
       return result;
     },
 
