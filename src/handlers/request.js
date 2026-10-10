@@ -1,11 +1,12 @@
 import { InlineKeyboard } from "grammy";
+import { safeEditMessage } from "../telegram-utils.js";
 import { storage } from "../storage/index.js";
 import { config } from "../config.js";
 import { requestReviewKeyboard } from "../ui.js";
 import { escapeHtml } from "../referral-utils.js";
 
 async function replyOrEdit(ctx, text, options = {}) {
-  if (ctx.callbackQuery) return ctx.editMessageText(text, options);
+  if (ctx.callbackQuery) return safeEditMessage(ctx, "editMessageText", text, options);
   return ctx.reply(text, options);
 }
 
