@@ -41,9 +41,9 @@ A serverless Telegram bot built with Node.js, grammY, Netlify Functions, and Net
 
 The bot is intentionally quiet in groups. It does not echo ordinary messages, respond to unknown commands, or post private welcome/referral/admin menus into group chats. In groups, `/request` is available to request access; `/help`, `/rules`, `/prizes`, and `/ping` respond only when the chat is allowed by the current access mode. Repeated `/request` status replies are rate-limited per group, and a pending access request does not trigger duplicate admin notifications. Inline-menu callbacks clicked in groups receive a small Telegram toast rather than creating another group message. Admin approval/rejection status notifications remain enabled because they communicate an actual access decision.
 
-## Important referral limitation
+## Referral sync behavior
 
-The bot records Telegram-side attribution only. It does **not** verify tournament entry totals, determine reward eligibility, credit wallets, or process payouts. Those actions require an authoritative integration with the tournament backend. Because the previous bot did not maintain a user registry, users who interacted with the old bot before this referral feature was installed cannot be reliably identified retroactively; first-seen protection begins when the new code is deployed.
+The bot records Telegram-side attribution and keeps its operational records in Netlify Blobs. Before Mini App registration, the frontend calls `/.netlify/functions/referral-sync`, which validates Telegram `init_data`, checks whether the Telegram account already exists in Neon, and copies only that user’s pending attribution plus its referral-code ownership into the existing Neon tables. Existing accounts and finalized attributions are not overwritten. Tournament eligibility, wallet credits, and payouts remain controlled by the Flask backend.
 
 ## Environment variables
 
@@ -55,9 +55,10 @@ OWNER_ID=your_numeric_telegram_user_id
 WEBHOOK_SECRET=a-long-random-secret
 MINI_APP_URL=https://your-mini-app.example
 BOT_USERNAME=omsArenaBot
+DATABASE_URL=postgresql://USER:PASSWORD@HOST/DB?sslmode=require
 ```
 
-`BOT_USERNAME` is optional; when omitted, the bot obtains its username from Telegram's `getMe` method when it creates a referral link. Do not include `@` in the value (the app also tolerates it).
+`BOT_USERNAME` is optional; when omitted, the bot obtains its username from Telegram's `getMe` method when it creates a referral link. Do not include `@` in the value (the app also tolerates it). `DATABASE_URL` must be the Neon connection string for the same database used by Flask. It is required only when a pending referral needs syncing; ordinary users without a pending referral can still register if the sync function is reachable.
 
 Use Node.js 22.12 or newer for the current `@netlify/blobs` dependency. `netlify.toml` pins `NODE_VERSION` to `22.12.0`.
 
@@ -66,9 +67,10 @@ Use Node.js 22.12 or newer for the current `@netlify/blobs` dependency. `netlify
 1. Push the project to your Git repository.
 2. Ensure Netlify is connected to the correct repository and branch.
 3. Set the environment variables above in Netlify.
-4. Deploy. No frontend build command is required; the publish directory is `public` and functions live in `netlify/functions`.
-5. Configure the Telegram webhook to `https://YOUR-SITE.netlify.app/.netlify/functions/telegram` with the same `WEBHOOK_SECRET` as `secret_token`. The compatibility endpoint `/.netlify/functions/bot` also uses the same app; configure only one webhook URL at a time.
-6. Check `getWebhookInfo` in the Telegram Bot API if updates are not arriving.
+4. Deploy the Mini App frontend with `VITE_REFERRAL_SYNC_URL` set to `https://YOUR-SITE.netlify.app/.netlify/functions/referral-sync` if its default URL (`https://0msarena.netlify.app/.netlify/functions/referral-sync`) is not your current Netlify site.
+5. Deploy. No frontend build command is required; the publish directory is `public` and functions live in `netlify/functions`.
+6. Configure the Telegram webhook to `https://YOUR-SITE.netlify.app/.netlify/functions/telegram` with the same `WEBHOOK_SECRET` as `secret_token`. The compatibility endpoint `/.netlify/functions/bot` also uses the same app; configure only one webhook URL at a time.
+7. Check `getWebhookInfo` in the Telegram Bot API if updates are not arriving.
 
 ## Local checks
 
@@ -78,7 +80,7 @@ npm run check
 npm test
 ```
 
-The tests do not require a live Telegram token or Netlify Blobs connection.
+The tests do not require a live Telegram token, Neon database, or Netlify Blobs connection. The referral sync function still needs a live deployment and database to verify the end-to-end path.
 
 ## Commands
 
